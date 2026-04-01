@@ -2,27 +2,36 @@
 [debug] IncrementalCompile.incrementalCompile
 [debug] previous = Stamps for: 2 products, 2 sources, 6 libraries
 [debug] current source = Set(${BASE}/src/test/scala/com/dqs/SparkSessionTest.scala, ${BASE}/src/test/scala/com/dqs/config/RuleConfigTest.scala)
-[debug] > initialChanges = InitialChanges(Changes(added = Set(), removed = Set(), changed = Set(${BASE}/src/test/scala/com/dqs/config/RuleConfigTest.scala), unmodified = ...),Set(),Set(),API Changes: Set())
+[debug] > initialChanges = InitialChanges(Changes(added = Set(), removed = Set(), changed = Set(), unmodified = ...),Set(),Set(),API Changes: Set(NamesChange(com.dqs.config.CheckConfig,ModifiedNames(changes = UsedName(optIntRw,[Implicit])))))
+[debug] The com.dqs.config.CheckConfig has the following implicit definitions changed:
+[debug] 	UsedName(optIntRw,[Implicit]).
+[debug] All member reference dependencies will be considered within this context.
+[debug] Files invalidated by inheriting from (external) com.dqs.config.CheckConfig: Set()
+[debug] Now invalidating by inheritance (internally).
+[debug] Getting direct dependencies of all classes transitively invalidated by inheritance.
+[debug] Getting classes that directly depend on (external) com.dqs.config.CheckConfig.
+[debug] The following member ref dependencies of com.dqs.config.CheckConfig are invalidated:
+[debug] 	com.dqs.config.RuleConfigTest
 [debug] 
 [debug] Initial source changes:
 [debug] 	removed: Set()
 [debug] 	added: Set()
-[debug] 	modified: Set(${BASE}/src/test/scala/com/dqs/config/RuleConfigTest.scala)
+[debug] 	modified: Set()
 [debug] Invalidated products: Set()
-[debug] External API changes: API Changes: Set()
+[debug] External API changes: API Changes: Set(NamesChange(com.dqs.config.CheckConfig,ModifiedNames(changes = UsedName(optIntRw,[Implicit]))))
 [debug] Modified binary dependencies: Set()
-[debug] Initial directly invalidated classes: Set(com.dqs.config.RuleConfigTest)
+[debug] Initial directly invalidated classes: Set()
 [debug] Sources indirectly invalidated by:
 [debug] 	product: Set()
 [debug] 	binary dep: Set()
-[debug] 	external source: Set()
+[debug] 	external source: Set(com.dqs.config.RuleConfigTest)
 [debug] All initially invalidated classes: Set(com.dqs.config.RuleConfigTest)
-[debug] All initially invalidated sources:Set(${BASE}/src/test/scala/com/dqs/config/RuleConfigTest.scala)
+[debug] All initially invalidated sources:Set()
 [debug] Initial set of included nodes: com.dqs.config.RuleConfigTest
 [debug] compilation cycle 1
 [info] compiling 1 Scala source to /home/sas/workspace/data-quality-service/spark-job/target/scala-2.13/test-classes ...
 [debug] Returning already retrieved and compiled bridge: /home/sas/.cache/coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala2-sbt-bridge/2.13.12/scala2-sbt-bridge-2.13.12.jar.
-[debug] [zinc] Running cached compiler 6e283794 for Scala compiler version 2.13.12
+[debug] [zinc] Running cached compiler 49e377e0 for Scala compiler version 2.13.12
 [debug] [zinc] The Scala compiler is invoked with:
 [debug] 	-bootclasspath
 [debug] 	/home/sas/.cache/coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12.jar
@@ -34,5 +43,5 @@
 [debug] Final step, transitive dependencies:
 [debug] 	Set()
 [debug] No classes were invalidated.
-[debug] Scala compilation took 3.347528071 s
+[debug] Scala compilation took 0.853563211 s
 [info] done compiling
