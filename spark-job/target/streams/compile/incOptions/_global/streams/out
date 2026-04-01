@@ -1,35 +1,6 @@
 [debug] Created transactional ClassFileManager with tempDir = /home/sas/workspace/data-quality-service/spark-job/target/scala-2.13/classes.bak
 [debug] About to delete class files:
-[debug] 	CheckConfig$$anon$1.class
-[debug] 	RuleConfig$$anon$4$$anon$5.class
-[debug] 	RuleConfig$$anon$6.class
-[debug] 	CheckConfig$.class
-[debug] 	CheckConfig.class
-[debug] 	RuleConfig$$anon$4.class
-[debug] 	CheckConfig$$anon$1$$anon$2.class
-[debug] 	RuleConfig$.class
-[debug] 	CheckConfig$$anon$3.class
-[debug] 	RuleConfig.class
 [debug] We backup class files:
-[debug] 	CheckConfig$$anon$1.class
-[debug] 	RuleConfig$$anon$4$$anon$5.class
-[debug] 	RuleConfig$$anon$6.class
-[debug] 	CheckConfig$.class
-[debug] 	CheckConfig.class
-[debug] 	RuleConfig$$anon$4.class
-[debug] 	CheckConfig$$anon$1$$anon$2.class
-[debug] 	RuleConfig$.class
-[debug] 	CheckConfig$$anon$3.class
-[debug] 	RuleConfig.class
 [debug] Registering generated classes:
-[debug] 	CheckConfig$$anon$1.class
-[debug] 	RuleConfig$$anon$4$$anon$5.class
-[debug] 	RuleConfig$$anon$6.class
-[debug] 	CheckConfig$.class
-[debug] 	CheckConfig.class
-[debug] 	RuleConfig$$anon$4.class
-[debug] 	CheckConfig$$anon$1$$anon$2.class
-[debug] 	RuleConfig$.class
-[debug] 	CheckConfig$$anon$3.class
-[debug] 	RuleConfig.class
+[debug] 	PostgresWriter.class
 [debug] Removing the temporary directory used for backing up class files: /home/sas/workspace/data-quality-service/spark-job/target/scala-2.13/classes.bak

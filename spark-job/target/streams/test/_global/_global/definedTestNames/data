@@ -1,1 +1,1 @@
-["com.dqs.SparkSessionTest","com.dqs.config.RuleConfigTest"]
+["com.dqs.SparkSessionTest","com.dqs.config.RuleConfigTest","com.dqs.db.PostgresWriterTest"]
