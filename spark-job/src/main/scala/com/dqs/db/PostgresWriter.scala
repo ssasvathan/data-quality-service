@@ -9,6 +9,7 @@ class PostgresWriter(host: String, port: Int, db: String, user: String, pass: St
 
   val jdbcUrl: String = s"jdbc:postgresql://$host:$port/$db"
 
+  /** Returns a fresh mutable Properties instance on each call — callers may mutate it freely. */
   def connectionProperties(): Properties = {
     val props = new Properties()
     props.setProperty("user", user)
