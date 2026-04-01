@@ -12,4 +12,22 @@ class RuleConfigTest extends AnyFunSuite {
     assert(config.checks.head.checkType == "rowCount")
     assert(config.checks.head.min.contains(100))
   }
+
+  test("parse rule config with min field absent") {
+    val json = """{"dataset": "UET0", "checks": [{"checkType": "rowCount"}]}"""
+    val config = RuleConfig.fromJson(json)
+
+    assert(config.dataset == "UET0")
+    assert(config.checks.size == 1)
+    assert(config.checks.head.checkType == "rowCount")
+    assert(config.checks.head.min.isEmpty)
+  }
+
+  test("parse rule config with malformed min field throws IllegalArgumentException") {
+    val json = """{"dataset": "UET0", "checks": [{"checkType": "rowCount", "min": "invalid"}]}"""
+
+    assertThrows[IllegalArgumentException] {
+      RuleConfig.fromJson(json)
+    }
+  }
 }
