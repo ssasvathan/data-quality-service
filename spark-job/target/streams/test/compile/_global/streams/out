@@ -1,0 +1,16 @@
+[error] /home/sas/workspace/data-quality-service/spark-job/src/test/scala/com/dqs/SparkSessionTest.scala:3:12: object scalatest is not a member of package org
+[error] import org.scalatest.funsuite.AnyFunSuite
+[error]            ^
+[error] /home/sas/workspace/data-quality-service/spark-job/src/test/scala/com/dqs/SparkSessionTest.scala:4:12: object apache is not a member of package org
+[error] import org.apache.spark.sql.SparkSession
+[error]            ^
+[error] /home/sas/workspace/data-quality-service/spark-job/src/test/scala/com/dqs/SparkSessionTest.scala:6:32: not found: type AnyFunSuite
+[error] class SparkSessionTest extends AnyFunSuite {
+[error]                                ^
+[error] /home/sas/workspace/data-quality-service/spark-job/src/test/scala/com/dqs/SparkSessionTest.scala:7:3: not found: value test
+[error]   test("SparkSession can be initialized locally") {
+[error]   ^
+[error] /home/sas/workspace/data-quality-service/spark-job/src/test/scala/com/dqs/SparkSessionTest.scala:8:17: not found: value SparkSession
+[error]     val spark = SparkSession.builder()
+[error]                 ^
+[error] 5 errors found
