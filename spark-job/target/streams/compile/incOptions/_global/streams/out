@@ -1,6 +1,8 @@
 [debug] Created transactional ClassFileManager with tempDir = /home/sas/workspace/data-quality-service/spark-job/target/scala-2.13/classes.bak
 [debug] About to delete class files:
+[debug] 	PostgresWriter.class
 [debug] We backup class files:
+[debug] 	PostgresWriter.class
 [debug] Registering generated classes:
 [debug] 	PostgresWriter.class
 [debug] Removing the temporary directory used for backing up class files: /home/sas/workspace/data-quality-service/spark-job/target/scala-2.13/classes.bak
