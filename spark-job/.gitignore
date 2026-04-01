@@ -1,3 +1,15 @@
 target/
 project/target/
 project/project/
+
+# IDE / tooling
+.idea/
+*.iml
+.bsp/
+.metals/
+.bloop/
+
+# Misc
+*.class
+*.log
+.DS_Store

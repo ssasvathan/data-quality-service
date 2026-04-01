@@ -10,7 +10,7 @@ class SparkSessionTest extends AnyFunSuite {
       .appName("DqsTest")
       .getOrCreate()
 
-    assert(spark.version.startsWith("3."))
+    assert(spark.version.startsWith("3.5"))
     spark.stop()
   }
 }
