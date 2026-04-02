@@ -1,4 +1,0 @@
-[error] /home/sas/workspace/data-quality-service/spark-job/src/test/scala/com/dqs/db/PostgresWriterTest.scala:7:22: not found: type PostgresWriter
-[error]     val writer = new PostgresWriter("localhost", 5433, "postgres", "postgres", "localdev")
-[error]                      ^
-[error] one error found
