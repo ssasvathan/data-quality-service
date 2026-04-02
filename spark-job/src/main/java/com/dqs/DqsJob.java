@@ -44,14 +44,15 @@ public class DqsJob {
 
         // Set up DB connection
         PostgresWriter writer = new PostgresWriter(dbHost, dbPort, dbName, dbUser, dbPass);
-        Connection conn = DriverManager.getConnection(writer.getJdbcUrl(), writer.connectionProperties());
 
-        try (MetadataRepository repo = new MetadataRepository(conn)) {
+        try (Connection conn = DriverManager.getConnection(writer.getJdbcUrl(), writer.connectionProperties());
+             MetadataRepository repo = new MetadataRepository(conn)) {
             int datasetId = repo.upsertDataset(config.getDataset());
             long startMs = System.currentTimeMillis();
             int runId = repo.openRun(datasetId);
 
             SparkSession spark = SparkSession.builder().appName("DqsJob").getOrCreate();
+            String runStatus = "ERROR"; // default if an exception is thrown
             try {
                 Dataset<Row> df = spark.read().parquet(inputPath);
 
@@ -61,13 +62,9 @@ public class DqsJob {
                 repo.insertCheckResults(runId, datasetId, results.getCheckResults());
                 repo.insertMetrics(runId, datasetId, results.getMetrics());
 
-                String status = results.hasFailed() ? "FAILED" : "PASSED";
-                repo.closeRun(runId, status, System.currentTimeMillis() - startMs);
-
-            } catch (Exception e) {
-                repo.closeRun(runId, "ERROR", System.currentTimeMillis() - startMs);
-                throw e;
+                runStatus = results.hasFailed() ? "FAILED" : "PASSED";
             } finally {
+                repo.closeRun(runId, runStatus, System.currentTimeMillis() - startMs);
                 spark.stop();
             }
         }
