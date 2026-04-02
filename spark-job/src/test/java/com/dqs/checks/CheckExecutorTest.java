@@ -1,7 +1,6 @@
 package com.dqs.checks;
 
-import com.dqs.config.CheckConfig;
-import com.dqs.config.RuleConfig;
+import com.dqs.db.CheckResult;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -10,72 +9,67 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.jupiter.api.*;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CheckExecutorTest {
+    private static SparkSession spark;
 
-    private SparkSession spark;
-
-    @BeforeEach
-    void setUpSpark() {
+    @BeforeAll
+    static void setUpSpark() {
         spark = SparkSession.builder()
                 .master("local[*]")
+                .config("spark.sql.session.timeZone", "UTC")
                 .appName("CheckExecutorTest")
-                .config("spark.sql.shuffle.partitions", "1")
                 .getOrCreate();
     }
 
-    @AfterEach
-    void tearDownSpark() {
-        if (spark != null) spark.stop();
+    @AfterAll
+    static void tearDownSpark() {
+        spark.stop();
     }
 
     private Dataset<Row> dfWithRows(int count) {
-        List<Row> rows = new ArrayList<>();
-        for (int i = 0; i < count; i++) rows.add(RowFactory.create("row" + i));
-        StructType schema = new StructType().add("value", DataTypes.StringType);
+        List<Row> rows = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) rows.add(RowFactory.create(String.valueOf(i), "2026-03-23T23:50:00Z"));
+        StructType schema = new StructType()
+            .add("value", DataTypes.StringType)
+            .add("source_event_timestamp", DataTypes.StringType);
         return spark.createDataFrame(rows, schema);
     }
 
     @Test
-    void rowCountPassesWhenCountMeetsMinimum() {
-        RuleConfig config = new RuleConfig("DS", List.of(new CheckConfig("rowCount", 3)));
-        CheckExecutor.Results results = new CheckExecutor().execute(dfWithRows(5), config);
-
-        assertEquals(1, results.getCheckResults().size());
-        assertEquals("PASSED", results.getCheckResults().get(0).getStatus());
-        assertEquals(1, results.getMetrics().size());
-        assertEquals(5.0, results.getMetrics().get(0).getMetricValue(), 0.001);
-        assertFalse(results.hasFailed());
+    void volumeCheckFlagsAnomaliesOutsideStdDev() {
+        List<Double> history = List.of(100.0, 105.0, 95.0); 
+        CheckExecutor.Results res = new CheckExecutor().execute(dfWithRows(50), "parquet", history, null, null);
+        
+        CheckResult volCheck = res.getCheckResults().stream().filter(r -> "volume".equals(r.getCheckType())).findFirst().get();
+        assertEquals("FAILED", volCheck.getStatus());
     }
-
+    
     @Test
-    void rowCountFailsWhenCountBelowMinimum() {
-        RuleConfig config = new RuleConfig("DS", List.of(new CheckConfig("rowCount", 10)));
-        CheckExecutor.Results results = new CheckExecutor().execute(dfWithRows(2), config);
-
-        assertEquals("FAILED", results.getCheckResults().get(0).getStatus());
-        assertTrue(results.hasFailed());
-        assertNotNull(results.getCheckResults().get(0).getFailureReason());
+    void schemaCheckPassesMatchingFingerprint() {
+        Dataset<Row> df = dfWithRows(1);
+        double hash = (double) Math.abs(df.schema().json().hashCode());
+        CheckExecutor.Results res = new CheckExecutor().execute(df, "parquet", Collections.emptyList(), hash, null);
+        
+        CheckResult schemaCheck = res.getCheckResults().stream().filter(r -> "schema".equals(r.getCheckType())).findFirst().get();
+        assertEquals("PASSED", schemaCheck.getStatus());
     }
-
+    
     @Test
-    void rowCountPassesWhenMinIsNull() {
-        RuleConfig config = new RuleConfig("DS", List.of(new CheckConfig("rowCount", null)));
-        CheckExecutor.Results results = new CheckExecutor().execute(dfWithRows(0), config);
-
-        assertEquals("PASSED", results.getCheckResults().get(0).getStatus());
-    }
-
-    @Test
-    void unknownCheckTypeProducesFailedResult() {
-        RuleConfig config = new RuleConfig("DS", List.of(new CheckConfig("nonExistentCheck", null)));
-        CheckExecutor.Results results = new CheckExecutor().execute(dfWithRows(5), config);
-
-        assertEquals("FAILED", results.getCheckResults().get(0).getStatus());
-        assertTrue(results.getCheckResults().get(0).getFailureReason().contains("Unknown check type"));
+    void freshnessCheckFlagsEarlyStoppage() {
+        Dataset<Row> df = dfWithRows(5); // max timestamp is 23:50 -> 1430 mins
+        List<Double> history = List.of(1440.0, 1440.0);
+        CheckExecutor.Results passRes = new CheckExecutor().execute(df, "parquet", null, null, history);
+        assertEquals("PASSED", passRes.getCheckResults().stream().filter(r -> "freshness".equals(r.getCheckType())).findFirst().get().getStatus());
+        
+        List<Row> earlyRows = List.of(RowFactory.create("1", "2026-03-23T22:00:00Z"));
+        Dataset<Row> earlyDf = spark.createDataFrame(earlyRows, df.schema());
+        
+        CheckExecutor.Results failRes = new CheckExecutor().execute(earlyDf, "parquet", null, null, history);
+        assertEquals("FAILED", failRes.getCheckResults().stream().filter(r -> "freshness".equals(r.getCheckType())).findFirst().get().getStatus());
     }
 }

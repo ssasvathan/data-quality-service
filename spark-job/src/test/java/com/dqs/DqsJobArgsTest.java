@@ -1,25 +1,23 @@
 package com.dqs;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DqsJobArgsTest {
 
     @Test
     void validateArgsThrowsWhenTooFewArgs() {
-        assertThrows(IllegalArgumentException.class,
-                () -> DqsJob.validateArgs(new String[]{"only-one"}));
+        assertThrows(IllegalArgumentException.class, () -> DqsJob.validateArgs(new String[]{"1", "2", "3", "4", "5", "6", "7"}));
     }
 
     @Test
     void validateArgsThrowsWhenTooManyArgs() {
-        assertThrows(IllegalArgumentException.class,
-                () -> DqsJob.validateArgs(new String[]{"a","b","c","d","e","f","g","h"}));
+        assertThrows(IllegalArgumentException.class, () -> DqsJob.validateArgs(new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9"}));
     }
 
     @Test
-    void validateArgsPassesForExactlySevenArgs() {
-        assertDoesNotThrow(() -> DqsJob.validateArgs(
-                new String[]{"/path/config.json", "/data/input", "localhost", "5432", "postgres", "user", "pass"}));
+    void validateArgsPassesForExactlyEightArgs() {
+        assertDoesNotThrow(() -> DqsJob.validateArgs(new String[]{"1", "2", "3", "4", "5", "6", "7", "8"}));
     }
 }
