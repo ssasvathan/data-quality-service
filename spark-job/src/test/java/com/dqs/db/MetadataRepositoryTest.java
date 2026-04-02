@@ -131,4 +131,36 @@ public class MetadataRepositoryTest {
             assertEquals(42.0, rs.getDouble("metric_value"), 0.001);
         }
     }
+
+    @Test
+    void fetchesHistoricalMetricsCorrectly() throws SQLException {
+        int datasetId = repo.upsertDataset("MY_SYS");
+        int runId1 = repo.openRun(datasetId);
+        repo.insertMetrics(runId1, datasetId, List.of(
+            new MetricSnapshot("rowCount", null, 150.0),
+            new MetricSnapshot("schemaHash", null, 123456.0)
+        ));
+        
+        List<Double> rowCounts = repo.getHistoricalMetricValues(datasetId, "rowCount", 30);
+        assertEquals(1, rowCounts.size());
+        assertEquals(150.0, rowCounts.get(0), 0.001);
+        
+        Double lastHash = repo.getLatestMetricValue(datasetId, "schemaHash");
+        assertNotNull(lastHash);
+        assertEquals(123456.0, lastHash, 0.001);
+    }
+
+    @Test
+    void fetchesLastSuccessfulRun() throws SQLException, InterruptedException {
+        int datasetId = repo.upsertDataset("MY_SYS");
+        int runId1 = repo.openRun(datasetId);
+        repo.closeRun(runId1, "FAILED", 100);
+        
+        assertNull(repo.getLastSuccessfulRun(datasetId));
+
+        int runId2 = repo.openRun(datasetId);
+        repo.closeRun(runId2, "PASSED", 100);
+        
+        assertNotNull(repo.getLastSuccessfulRun(datasetId));
+    }
 }
