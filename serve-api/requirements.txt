@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+sqlalchemy
+pg8000
+pytest
+httpx
+mcp
