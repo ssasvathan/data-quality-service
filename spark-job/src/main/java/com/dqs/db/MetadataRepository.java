@@ -44,7 +44,7 @@ public class MetadataRepository implements AutoCloseable {
             ps.executeUpdate();
             try (ResultSet gk = ps.getGeneratedKeys()) {
                 gk.next();
-                return gk.getInt("run_id");
+                return gk.getInt(1);
             }
         }
     }
