@@ -2,7 +2,6 @@ package com.dqs.checks;
 
 import com.dqs.config.CheckConfig;
 import com.dqs.config.RuleConfig;
-import com.dqs.db.CheckResult;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
