@@ -2,6 +2,22 @@
 -- Temporal pattern: create_date + expiry_date as TIMESTAMP, sentinel '9999-12-31 23:59:59'
 -- Composite unique constraints enforce no duplicate active records (same natural key + expiry_date)
 
+CREATE TABLE dq_orchestration_run (
+    id               SERIAL PRIMARY KEY,
+    parent_path      TEXT NOT NULL,
+    run_status       TEXT NOT NULL,
+    start_time       TIMESTAMP,
+    end_time         TIMESTAMP,
+    total_datasets   INTEGER,
+    passed_datasets  INTEGER,
+    failed_datasets  INTEGER,
+    error_summary    TEXT,
+    create_date      TIMESTAMP NOT NULL DEFAULT NOW(),
+    expiry_date      TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59',
+    CONSTRAINT uq_dq_orchestration_run_parent_path_expiry_date
+        UNIQUE (parent_path, expiry_date)
+);
+
 CREATE TABLE dq_run (
     id                   SERIAL PRIMARY KEY,
     dataset_name         TEXT NOT NULL,
@@ -20,6 +36,10 @@ CREATE TABLE dq_run (
 
 CREATE INDEX idx_dq_run_dataset_name_partition_date
     ON dq_run (dataset_name, partition_date);
+
+ALTER TABLE dq_run
+    ADD CONSTRAINT fk_dq_run_orchestration_run
+    FOREIGN KEY (orchestration_run_id) REFERENCES dq_orchestration_run(id);
 
 CREATE TABLE dq_metric_numeric (
     id           SERIAL PRIMARY KEY,
