@@ -311,4 +311,26 @@ class CheckFactoryTest {
 
         assertTrue(result.isEmpty());
     }
+
+    // ---------------------------------------------------------------------------
+    // Story 2-9: DqsScoreCheck registration
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void registerDqsScoreCheckImplementationAddsRealCheck() {
+        assertDoesNotThrow(() -> factory.register(new DqsScoreCheck()));
+    }
+
+    @Test
+    void getEnabledChecksReturnsRegisteredDqsScoreCheckImplementation() throws Exception {
+        factory.register(new DqsScoreCheck());
+        insertConfig("lob=retail/%", "DQS_SCORE", true);
+
+        List<DqCheck> result = factory.getEnabledChecks(
+                ctx("lob=retail/src_sys_nm=alpha/dataset=sales_daily"), conn);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof DqsScoreCheck);
+        assertEquals("DQS_SCORE", result.get(0).getCheckType());
+    }
 }
