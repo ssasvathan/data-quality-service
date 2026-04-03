@@ -1,0 +1,2 @@
+-- dqs-serve owns all schema DDL
+-- Placeholder — schema definitions added in story 1-2

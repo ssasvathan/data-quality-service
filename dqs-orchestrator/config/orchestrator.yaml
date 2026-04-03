@@ -1,0 +1,19 @@
+# dqs-orchestrator configuration
+# Each component has its own config — no shared root-level config
+
+database:
+  url: postgresql://postgres:localdev@localhost:5432/postgres
+
+spark:
+  submit_path: spark-submit
+  master: yarn
+  deploy_mode: cluster
+  driver_memory: 2g
+  executor_memory: 4g
+
+email:
+  smtp_host: localhost
+  smtp_port: 25
+  from_address: dqs-alerts@example.com
+  to_addresses:
+    - data-engineering@example.com

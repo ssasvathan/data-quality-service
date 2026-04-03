@@ -6,4 +6,20 @@ services:
       POSTGRES_PASSWORD: localdev
       POSTGRES_DB: postgres
     ports:
-      - "5433:5432"
+      - "5432:5432"
+
+  serve:
+    build: ./dqs-serve
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://postgres:localdev@postgres:5432/postgres
+
+  dashboard:
+    build: ./dqs-dashboard
+    ports:
+      - "5173:5173"
+    depends_on:
+      - serve

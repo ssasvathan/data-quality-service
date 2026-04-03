@@ -1,0 +1,2 @@
+-- Active-record views (v_*_active)
+-- Placeholder — view definitions added in story 1-2

@@ -1,0 +1,14 @@
+[project]
+name = "dqs-serve"
+version = "0.1.0"
+description = "Data Quality Service — FastAPI serve layer, MCP tools, and schema DDL owner"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.135.3",
+    "fastmcp>=3.2.0",
+    "psycopg2-binary>=2.9.11",
+    "pydantic>=2.12.5",
+    "sqlalchemy>=2.0.48",
+    "uvicorn>=0.42.0",
+]

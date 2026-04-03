@@ -1,0 +1,12 @@
+# dqs-serve component configuration
+# Each component has its own config — no shared root-level config
+
+database:
+  url: postgresql://postgres:localdev@localhost:5432/postgres
+  pool_size: 5
+  max_overflow: 10
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false

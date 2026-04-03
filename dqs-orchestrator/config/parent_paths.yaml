@@ -1,0 +1,10 @@
+# Parent paths for DQ job execution
+# One spark-submit per entry; failed paths don't halt others
+
+parent_paths:
+  - path: /data/finance/loans
+    description: "Finance loan dataset parent path"
+  - path: /data/finance/deposits
+    description: "Finance deposits dataset parent path"
+  - path: /data/risk/credit
+    description: "Risk credit dataset parent path"
