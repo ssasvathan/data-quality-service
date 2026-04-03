@@ -39,7 +39,8 @@ last_updated: 2026-04-03
 project: data-quality-service
 # last story update: 2-10-batch-db-writer-dqsjob-integration -> done (2026-04-03)
 # last traceability: 2-10-batch-db-writer-dqsjob-integration -> PASS (2026-04-03)
-# last epic update: epic-1 -> done (2026-04-03)
+# last epic update: epic-2 -> done (2026-04-03)
+# last retrospective: epic-2-retrospective -> done (2026-04-03)
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
@@ -57,7 +58,7 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Dataset Discovery & Tier 1 Quality Checks
-  epic-2: in-progress
+  epic-2: done
   2-1-dqcheck-strategy-interface-metric-models-check-factory: done
   2-2-hdfs-path-scanner-with-consumer-zone-implementation: done
   2-3-dataset-reading-avro-parquet-with-backfill-support: done
@@ -68,7 +69,7 @@ development_status:
   2-8-ops-check-implementation: done
   2-9-dqs-score-computation: done
   2-10-batch-db-writer-dqsjob-integration: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # Epic 3: Orchestration, Run Management & Notifications
   epic-3: backlog
