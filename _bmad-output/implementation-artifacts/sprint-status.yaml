@@ -1,5 +1,9 @@
 # generated: 2026-04-03T00:00:00
 # last_updated: 2026-04-03
+# last traceability: 3-4-rerun-management-with-metric-expiration -> PASS (2026-04-03)
+# last story update: 3-4-rerun-management-with-metric-expiration -> done (2026-04-03)
+# last story update: 3-4-rerun-management-with-metric-expiration -> review (2026-04-03)
+# last atdd: 3-4-rerun-management-with-metric-expiration -> 23 failing tests generated (2026-04-03)
 # project: data-quality-service
 # project_key: NOKEY
 # tracking_system: file-system
@@ -85,7 +89,7 @@ development_status:
   3-1-python-cli-parent-path-configuration: done
   3-2-spark-submit-runner-with-failure-isolation: done
   3-3-orchestration-run-tracking-error-capture: done
-  3-4-rerun-management-with-metric-expiration: backlog
+  3-4-rerun-management-with-metric-expiration: done
   3-5-summary-email-notification: backlog
   epic-3-retrospective: optional
 

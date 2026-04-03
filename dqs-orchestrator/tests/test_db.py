@@ -1,14 +1,22 @@
-"""Acceptance tests for db helpers — Story 3-3: Orchestration Run Tracking & Error Capture.
+"""Acceptance tests for db helpers — Story 3-3 + Story 3-4.
 
-TDD RED PHASE: All tests in this file are written for expected behavior.
-They WILL FAIL until the implementation is complete because:
-  - create_orchestration_run() does not exist in db.py yet
-  - finalize_orchestration_run() does not exist in db.py yet
-  - EXPIRY_SENTINEL constant does not exist in db.py yet
+TDD RED PHASE (Story 3-3): Tests that were failing until Story 3-3 implemented:
+  - create_orchestration_run() — now exists
+  - finalize_orchestration_run() — now exists
+  - EXPIRY_SENTINEL constant — now exists
 
-AC Coverage:
+AC Coverage (Story 3-3):
   AC1 — create_orchestration_run inserts row with run_status='running' and returns auto-generated id
   AC2 — finalize_orchestration_run updates row with end_time, counts, and correct run_status
+
+TDD RED PHASE (Story 3-4): All tests in the Story 3-4 section WILL FAIL until:
+  - expire_previous_run() does not exist in db.py yet
+  - get_next_rerun_number() does not exist in db.py yet
+
+AC Coverage (Story 3-4):
+  AC1 — get_next_rerun_number returns MAX(rerun_number)+1 across all history
+  AC2 — expire_previous_run sets expiry_date on dq_run AND cascades to both metric tables in one transaction
+  AC3 — (Audit trail) full history preserved in raw tables; only latest rerun visible via active views
 """
 
 from datetime import datetime
@@ -194,3 +202,244 @@ def test_get_connection_uses_database_url_env(monkeypatch) -> None:
         from orchestrator.db import get_connection  # noqa: PLC0415
         get_connection()
         mock_connect.assert_called_once_with("postgresql://user:pass@myhost:5432/mydb")
+
+
+# ---------------------------------------------------------------------------
+# Story 3-4 ATDD tests — TDD RED PHASE
+# All tests below WILL FAIL until expire_previous_run() and
+# get_next_rerun_number() are added to db.py.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# AC2: expire_previous_run — sets expiry_date on dq_run and cascades to metrics
+# ---------------------------------------------------------------------------
+
+
+def test_expire_previous_run_updates_expiry_date_on_dq_run() -> None:
+    """AC2: expire_previous_run() executes UPDATE on dq_run with correct params.
+
+    TDD RED: Will raise ImportError until expire_previous_run is added to db.py.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import EXPIRY_SENTINEL, expire_previous_run  # noqa: PLC0415
+
+    expiry_ts = datetime(2026, 3, 25, 10, 5, 0)
+    partition_date = date(2026, 3, 25)
+    # Simulate: cursor finds one active run row (id=7, rerun_number=0)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[7, 0])
+
+    result = expire_previous_run(mock_conn, "ue90-omni-transactions", partition_date, expiry_ts)
+
+    # Must return the expired run's rerun_number (0) for next-rerun-number calculation
+    assert result == 0
+
+    # First execute call must be the dq_run UPDATE
+    first_call_sql = mock_cursor.execute.call_args_list[0][0][0]
+    assert "UPDATE dq_run" in first_call_sql
+    assert "expiry_date" in first_call_sql
+
+    # The UPDATE params must include: expiry_ts, dataset_name, partition_date, EXPIRY_SENTINEL
+    first_call_params = mock_cursor.execute.call_args_list[0][0][1]
+    assert expiry_ts in first_call_params
+    assert "ue90-omni-transactions" in first_call_params
+    assert partition_date in first_call_params
+    assert EXPIRY_SENTINEL in first_call_params
+
+
+def test_expire_previous_run_cascades_to_metric_numeric() -> None:
+    """AC2: expire_previous_run() also updates dq_metric_numeric with the run's id.
+
+    TDD RED: Will fail until expire_previous_run exists and cascades metric expiry.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import expire_previous_run  # noqa: PLC0415
+
+    expiry_ts = datetime(2026, 3, 25, 10, 5, 0)
+    partition_date = date(2026, 3, 25)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[55, 1])
+
+    expire_previous_run(mock_conn, "ue90-omni-transactions", partition_date, expiry_ts)
+
+    # Three execute calls expected: UPDATE dq_run, UPDATE dq_metric_numeric, UPDATE dq_metric_detail
+    assert mock_cursor.execute.call_count == 3, (
+        f"Expected 3 execute calls (dq_run + numeric + detail), got {mock_cursor.execute.call_count}"
+    )
+
+    # Second call must be dq_metric_numeric UPDATE
+    second_call_sql = mock_cursor.execute.call_args_list[1][0][0]
+    assert "dq_metric_numeric" in second_call_sql
+    assert "expiry_date" in second_call_sql
+
+    # Second call params must include the run_id=55 returned from dq_run query
+    second_call_params = mock_cursor.execute.call_args_list[1][0][1]
+    assert 55 in second_call_params
+
+
+def test_expire_previous_run_cascades_to_metric_detail() -> None:
+    """AC2: expire_previous_run() also updates dq_metric_detail with the run's id.
+
+    TDD RED: Will fail until expire_previous_run exists and cascades metric detail expiry.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import expire_previous_run  # noqa: PLC0415
+
+    expiry_ts = datetime(2026, 3, 25, 10, 5, 0)
+    partition_date = date(2026, 3, 25)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[99, 2])
+
+    expire_previous_run(mock_conn, "ue90-omni-transactions", partition_date, expiry_ts)
+
+    # Third call must be dq_metric_detail UPDATE
+    third_call_sql = mock_cursor.execute.call_args_list[2][0][0]
+    assert "dq_metric_detail" in third_call_sql
+    assert "expiry_date" in third_call_sql
+
+    # Third call params must include the run_id=99 returned from dq_run query
+    third_call_params = mock_cursor.execute.call_args_list[2][0][1]
+    assert 99 in third_call_params
+
+
+def test_expire_previous_run_commits_all_three_updates_in_one_transaction() -> None:
+    """AC2: expire_previous_run() calls conn.commit() once after all three UPDATEs.
+
+    TDD RED: Will fail until expire_previous_run commits atomically.
+    Per story: all three UPDATEs must execute within one transaction.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import expire_previous_run  # noqa: PLC0415
+
+    expiry_ts = datetime(2026, 3, 25, 10, 5, 0)
+    partition_date = date(2026, 3, 25)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[42, 0])
+
+    expire_previous_run(mock_conn, "ue90-omni-transactions", partition_date, expiry_ts)
+
+    # conn.commit() called exactly once (one transaction for all 3 UPDATEs)
+    mock_conn.commit.assert_called_once()
+
+
+def test_expire_previous_run_returns_none_when_no_active_run() -> None:
+    """AC2 (edge): expire_previous_run() returns None when no active run found.
+
+    TDD RED: Will fail until expire_previous_run handles missing rows gracefully.
+    First-time run — no active run to expire. Must return None without raising.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import expire_previous_run  # noqa: PLC0415
+
+    expiry_ts = datetime(2026, 3, 25, 10, 5, 0)
+    partition_date = date(2026, 3, 25)
+    # No rows returned (no active run for this dataset)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=None)
+
+    result = expire_previous_run(mock_conn, "new-dataset-first-run", partition_date, expiry_ts)
+
+    assert result is None, (
+        "expire_previous_run must return None when no active run exists (first-time run — not an error)"
+    )
+    # Must still commit even when no rows found (commit after empty fetchone)
+    mock_conn.commit.assert_called()
+
+
+def test_expire_previous_run_uses_expiry_sentinel_constant_in_where_clause() -> None:
+    """AC2: expire_previous_run() uses EXPIRY_SENTINEL in the WHERE clause — never hardcodes sentinel.
+
+    TDD RED: Will fail until expire_previous_run uses EXPIRY_SENTINEL properly.
+    Per project-context.md: always use EXPIRY_SENTINEL constant, never hardcode '9999-12-31 23:59:59'.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import EXPIRY_SENTINEL, expire_previous_run  # noqa: PLC0415
+
+    expiry_ts = datetime(2026, 3, 25, 10, 5, 0)
+    partition_date = date(2026, 3, 25)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[1, 0])
+
+    expire_previous_run(mock_conn, "ue90-omni-transactions", partition_date, expiry_ts)
+
+    # The WHERE clause of the dq_run UPDATE must use EXPIRY_SENTINEL as a param
+    first_call_params = mock_cursor.execute.call_args_list[0][0][1]
+    assert EXPIRY_SENTINEL in first_call_params, (
+        "EXPIRY_SENTINEL must appear in SQL params — never hardcode '9999-12-31 23:59:59' inline"
+    )
+
+
+# ---------------------------------------------------------------------------
+# AC1: get_next_rerun_number — returns MAX(rerun_number)+1 across all history
+# ---------------------------------------------------------------------------
+
+
+def test_get_next_rerun_number_returns_zero_when_no_history() -> None:
+    """AC1: get_next_rerun_number() returns 0 when no previous runs exist (first-time run).
+
+    TDD RED: Will raise ImportError until get_next_rerun_number is added to db.py.
+    Formula: COALESCE(MAX(rerun_number), -1) + 1 = COALESCE(NULL, -1) + 1 = 0.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import get_next_rerun_number  # noqa: PLC0415
+
+    partition_date = date(2026, 3, 25)
+    # COALESCE(MAX(NULL), -1)+1 = 0 when no rows exist
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[0])
+
+    result = get_next_rerun_number(mock_conn, "new-dataset", partition_date)
+
+    assert result == 0, (
+        "get_next_rerun_number must return 0 when no previous runs exist (first-time run)"
+    )
+    mock_cursor.execute.assert_called_once()
+
+
+def test_get_next_rerun_number_returns_one_when_first_run_exists() -> None:
+    """AC1: get_next_rerun_number() returns 1 when one run exists with rerun_number=0.
+
+    TDD RED: Will fail until get_next_rerun_number exists in db.py.
+    Formula: COALESCE(MAX(0), -1) + 1 = 0 + 1 = 1 (first rerun).
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import get_next_rerun_number  # noqa: PLC0415
+
+    partition_date = date(2026, 3, 25)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[1])
+
+    result = get_next_rerun_number(mock_conn, "ue90-omni-transactions", partition_date)
+
+    assert result == 1, (
+        "get_next_rerun_number must return 1 when one run with rerun_number=0 exists"
+    )
+
+
+def test_get_next_rerun_number_queries_all_history_including_expired() -> None:
+    """AC1: get_next_rerun_number() queries ALL dq_run rows — not just active ones.
+
+    TDD RED: Will fail until get_next_rerun_number exists and queries across all history.
+    Must NOT filter by expiry_date — we need MAX across all reruns including expired ones.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import get_next_rerun_number  # noqa: PLC0415
+
+    partition_date = date(2026, 3, 25)
+    mock_conn, mock_cursor = make_mock_conn(fetchone_return=[3])
+
+    result = get_next_rerun_number(mock_conn, "ue90-omni-transactions", partition_date)
+
+    assert result == 3
+
+    # The SQL must NOT include 'expiry_date' in the WHERE clause — must query all history
+    call_sql = mock_cursor.execute.call_args[0][0]
+    assert "expiry_date" not in call_sql.lower(), (
+        "get_next_rerun_number must query ALL rows (no expiry_date filter) "
+        "— MAX must cover expired history too"
+    )
+    # Must include the dataset_name and partition_date as params
+    call_params = mock_cursor.execute.call_args[0][1]
+    assert "ue90-omni-transactions" in call_params
+    assert partition_date in call_params

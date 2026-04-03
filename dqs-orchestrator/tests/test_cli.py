@@ -1,11 +1,11 @@
-"""Acceptance tests for orchestrator CLI — Story 3-1 + Story 3-3.
+"""Acceptance tests for orchestrator CLI — Story 3-1 + Story 3-3 + Story 3-4.
 
 AC Coverage (Story 3-1):
   AC1 — load_parent_paths reads config and identifies parent paths
   AC2 — parse_args parses --date, --datasets, --rerun arguments
   AC3 — missing/malformed config exits with a clear error message
 
-AC Coverage (Story 3-3 — TDD RED PHASE):
+AC Coverage (Story 3-3):
   AC1 (3-3) — main() calls create_orchestration_run before run_all_paths for each parent path
   AC2 (3-3) — main() calls finalize_orchestration_run after run_all_paths for each JobResult
   AC2 (3-3) — finalize uses 'completed_with_errors' when JobResult has failures
@@ -13,9 +13,14 @@ AC Coverage (Story 3-3 — TDD RED PHASE):
   Safety    — DB errors in create_orchestration_run do NOT prevent spark-submit
   Safety    — DB errors in finalize_orchestration_run do NOT cause sys.exit(1)
 
-TDD RED PHASE TESTS (Story 3-3):
-  Tests marked "# TDD RED" will FAIL until cli.py imports and wires DB functions.
-  Mock targets must use 'orchestrator.cli.*' prefix (per Story 3.2 notes).
+AC Coverage (Story 3-4 — TDD RED PHASE):
+  AC1 (3-4) — main() calls expire_previous_run for each dataset when --rerun flag is set
+  AC2 (3-4) — main() does NOT call expire_previous_run on normal (non-rerun) runs
+  Safety    — DB errors in expire_previous_run are non-fatal (spark-submit proceeds)
+
+TDD RED PHASE TESTS (Story 3-4):
+  Tests marked "# TDD RED (3-4)" will FAIL until cli.py imports expire_previous_run and wires it.
+  Mock target: 'orchestrator.cli.expire_previous_run' (imported at module level in cli.py).
 """
 
 from unittest.mock import MagicMock, patch
@@ -527,3 +532,173 @@ def test_main_does_not_exit_1_when_finalize_orchestration_run_raises(
          patch("orchestrator.cli.finalize_orchestration_run", side_effect=Exception("DB write failed")):
         # All spark results succeeded → main() must NOT call sys.exit(1) due to finalize failure
         main()  # If this raises SystemExit(1), the test fails correctly (TDD red)
+
+
+# ---------------------------------------------------------------------------
+# Story 3-4 ATDD tests — TDD RED PHASE
+# All tests below WILL FAIL until cli.py imports expire_previous_run and wires
+# the rerun-management block into main().
+# ---------------------------------------------------------------------------
+
+
+def test_main_calls_expire_previous_run_when_rerun_flag_set(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC1 (3-4): main() calls expire_previous_run for each dataset in args.datasets when --rerun is set.
+
+    TDD RED (3-4): Will fail until cli.py imports expire_previous_run and calls it
+    for each dataset in args.datasets when args.rerun is True.
+    Mock target: 'orchestrator.cli.expire_previous_run' (module-level import in cli.py).
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_expire = MagicMock(return_value=0)  # Returns rerun_number=0 (previous was first run)
+
+    with patch(
+        "sys.argv",
+        ["orchestrator", "--config", config_file, "--date", "20260325",
+         "--datasets", "ue90-omni-transactions", "--rerun"],
+    ), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=10), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.expire_previous_run", mock_expire):
+        main()
+
+    # expire_previous_run must be called once for the single dataset
+    assert mock_expire.call_count == 1, (
+        f"expire_previous_run must be called once per dataset, got {mock_expire.call_count}"
+    )
+    # First positional arg after conn should be dataset_name
+    call_args = mock_expire.call_args[0]
+    assert "ue90-omni-transactions" in call_args, (
+        "expire_previous_run must be called with the dataset_name from --datasets"
+    )
+
+
+def test_main_does_not_call_expire_previous_run_when_rerun_not_set(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC2 (3-4): main() does NOT call expire_previous_run on normal (non-rerun) runs.
+
+    TDD RED (3-4): Will fail until cli.py guards expire_previous_run behind `if args.rerun`.
+    Per story: expire_previous_run is ONLY called when --rerun flag is set.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_expire = MagicMock()
+
+    with patch(
+        "sys.argv",
+        # No --rerun flag and no --datasets
+        ["orchestrator", "--config", config_file, "--date", "20260325"],
+    ), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=10), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.expire_previous_run", mock_expire):
+        main()
+
+    mock_expire.assert_not_called(), (
+        "expire_previous_run must NOT be called on a normal (non-rerun) run"
+    )
+
+
+def test_main_expire_error_is_non_fatal_spark_submit_still_proceeds(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """Safety (3-4): expire_previous_run raising does NOT prevent spark-submit from proceeding.
+
+    TDD RED (3-4): Will fail until cli.py wraps expire_previous_run in try/except Exception.
+    Per story: DB errors in expire_previous_run are non-fatal — spark-submit must proceed.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_run_all = MagicMock(return_value=[
+        JobResult("/data/finance/loans", success=True),
+    ])
+
+    with patch(
+        "sys.argv",
+        ["orchestrator", "--config", config_file, "--date", "20260325",
+         "--datasets", "ue90-omni-transactions", "--rerun"],
+    ), \
+         patch("orchestrator.cli.run_all_paths", mock_run_all), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=10), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.expire_previous_run",
+               side_effect=Exception("DB connection refused")):
+        # Must NOT raise — DB failure is non-fatal, spark-submit must proceed
+        main()
+
+    # run_all_paths must still be called despite expire failure
+    mock_run_all.assert_called_once(), (
+        "run_all_paths must still be called even when expire_previous_run raises"
+    )
+
+
+def test_main_passes_rerun_numbers_to_run_all_paths(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC1 (3-4): main() passes rerun_numbers kwarg to run_all_paths when --rerun is set.
+
+    TDD RED (3-4): Will fail until cli.py computes rerun_numbers and passes them
+    to run_all_paths() so each spark-submit gets the correct --rerun-number.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_run_all = MagicMock(return_value=[
+        JobResult("/data/finance/loans", success=True),
+    ])
+
+    # expire_previous_run returns 0 → next rerun_number should be 1
+    with patch(
+        "sys.argv",
+        ["orchestrator", "--config", config_file, "--date", "20260325",
+         "--datasets", "ue90-omni-transactions", "--rerun"],
+    ), \
+         patch("orchestrator.cli.run_all_paths", mock_run_all), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=10), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.expire_previous_run", return_value=0):
+        main()
+
+    # run_all_paths must receive rerun_numbers kwarg
+    call_kwargs = mock_run_all.call_args[1]
+    assert "rerun_numbers" in call_kwargs, (
+        "run_all_paths must be called with rerun_numbers kwarg when --rerun is set"
+    )
+    rerun_numbers = call_kwargs["rerun_numbers"]
+    assert rerun_numbers is not None, "rerun_numbers must not be None when --rerun is set"
+    # The value for ue90-omni-transactions should be 1 (prev rerun_number=0, so next=1)
+    assert rerun_numbers.get("ue90-omni-transactions") == 1, (
+        "rerun_numbers['ue90-omni-transactions'] must be 1 when previous rerun_number was 0"
+    )

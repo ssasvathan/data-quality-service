@@ -170,4 +170,74 @@ class DqsJobArgParserTest {
                 () -> DqsJob.parseArgs(args),
                 "parseArgs must throw IllegalArgumentException when --orchestration-run-id has no value");
     }
+
+    // ---------------------------------------------------------------------------
+    // AC1 (Story 3-4): --rerun-number parsing
+    //
+    // TDD RED PHASE: All four tests below WILL FAIL until:
+    //   1. DqsJobArgs record gains int rerunNumber field (default 0)
+    //   2. parseArgs() switch block gains a "--rerun-number" case
+    //      that parses the value as an int
+    //   3. DqsJob.main() passes jobArgs.rerunNumber() to writer.write()
+    // ---------------------------------------------------------------------------
+
+    /**
+     * [P0] AC1 (3-4): --rerun-number 2 is parsed correctly as an int.
+     *
+     * TDD RED: Will fail until DqsJobArgs record has int rerunNumber field
+     * and parseArgs() switch block handles "--rerun-number".
+     */
+    @Test
+    void parseArgsExtractsRerunNumber() {
+        String[] args = {"--parent-path", "/prod/abc/data", "--rerun-number", "2"};
+
+        DqsJob.DqsJobArgs result = DqsJob.parseArgs(args);
+
+        assertEquals(2, result.rerunNumber(),
+                "rerunNumber must equal 2 when --rerun-number 2 is provided");
+    }
+
+    /**
+     * [P1] AC1 (3-4): rerunNumber defaults to 0 when --rerun-number is absent.
+     *
+     * TDD RED: Will fail until DqsJobArgs record has int rerunNumber with default 0.
+     */
+    @Test
+    void parseArgsDefaultsRerunNumberToZeroWhenAbsent() {
+        String[] args = {"--parent-path", "/prod/abc/data"};
+
+        DqsJob.DqsJobArgs result = DqsJob.parseArgs(args);
+
+        assertEquals(0, result.rerunNumber(),
+                "rerunNumber must default to 0 when --rerun-number flag is absent");
+    }
+
+    /**
+     * [P1] AC1 (3-4): Non-integer value for --rerun-number throws IllegalArgumentException.
+     *
+     * TDD RED: Will fail until parseArgs() catches NumberFormatException and wraps it
+     * in an IllegalArgumentException with a descriptive message.
+     */
+    @Test
+    void parseArgsThrowsOnInvalidRerunNumberValue() {
+        String[] args = {"--parent-path", "/prod/abc/data", "--rerun-number", "not-a-number"};
+
+        assertThrows(IllegalArgumentException.class,
+                () -> DqsJob.parseArgs(args),
+                "parseArgs must throw IllegalArgumentException when --rerun-number value is not a valid integer");
+    }
+
+    /**
+     * [P1] AC1 (3-4): --rerun-number with no following value throws IllegalArgumentException.
+     *
+     * TDD RED: Will fail until parseArgs() validates that --rerun-number is followed by a value.
+     */
+    @Test
+    void parseArgsThrowsOnDanglingRerunNumberFlag() {
+        String[] args = {"--parent-path", "/prod/abc/data", "--rerun-number"};
+
+        assertThrows(IllegalArgumentException.class,
+                () -> DqsJob.parseArgs(args),
+                "parseArgs must throw IllegalArgumentException when --rerun-number has no value");
+    }
 }

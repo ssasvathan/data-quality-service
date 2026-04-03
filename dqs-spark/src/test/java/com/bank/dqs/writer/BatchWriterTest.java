@@ -182,7 +182,7 @@ class BatchWriterTest {
                     compositeScoreMetric(87.5)
             );
 
-            long runId = writer.write(defaultCtx(), metrics, null);
+            long runId = writer.write(defaultCtx(), metrics, null, 0);
 
             assertTrue(runId > 0, "write() must return the generated dq_run.id (> 0)");
             assertEquals(1, countRows("dq_run"), "Exactly one dq_run record must be inserted");
@@ -207,7 +207,7 @@ class BatchWriterTest {
             metrics.add(new MetricNumeric("VOLUME",    "row_count",       10000.0));
             metrics.add(compositeScoreMetric(87.5));
 
-            writer.write(defaultCtx(), metrics, null);
+            writer.write(defaultCtx(), metrics, null, 0);
 
             assertEquals(3, countRows("dq_metric_numeric"),
                     "All 3 MetricNumeric entries must be inserted into dq_metric_numeric");
@@ -243,7 +243,7 @@ class BatchWriterTest {
                     "{\"status\":\"PASS\",\"reason\":\"within_sla\"}"));
             metrics.add(dqsScoreBreakdownDetail("PASS"));
 
-            writer.write(defaultCtx(), metrics, null);
+            writer.write(defaultCtx(), metrics, null, 0);
 
             assertEquals(2, countRows("dq_metric_detail"),
                     "All 2 MetricDetail entries must be inserted into dq_metric_detail");
@@ -280,7 +280,7 @@ class BatchWriterTest {
                     compositeScoreMetric(92.0)
             );
 
-            writer.write(defaultCtx(), metrics, null);
+            writer.write(defaultCtx(), metrics, null, 0);
 
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT check_status FROM dq_run")) {
@@ -309,7 +309,7 @@ class BatchWriterTest {
                     compositeScoreMetric(87.5)
             );
 
-            writer.write(defaultCtx(), metrics, null);
+            writer.write(defaultCtx(), metrics, null, 0);
 
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT dqs_score FROM dq_run")) {
@@ -341,7 +341,7 @@ class BatchWriterTest {
                             "{\"status\":\"PASS\",\"reason\":\"within_sla\"}")
             );
 
-            writer.write(defaultCtx(), metrics, null);
+            writer.write(defaultCtx(), metrics, null, 0);
 
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT check_status FROM dq_run")) {
@@ -392,7 +392,7 @@ class BatchWriterTest {
 
         // write() must throw because the connection is closed
         assertThrows(Exception.class,
-                () -> writer.write(defaultCtx(), metrics, null),
+                () -> writer.write(defaultCtx(), metrics, null, 0),
                 "BatchWriter.write() must throw when connection is closed/broken");
 
         // No partial records must remain in dq_run
@@ -416,7 +416,7 @@ class BatchWriterTest {
             BatchWriter writer = new BatchWriter(writeConn);
             List<DqMetric> metrics = List.of(); // Empty list
 
-            long runId = writer.write(defaultCtx(), metrics, null);
+            long runId = writer.write(defaultCtx(), metrics, null, 0);
 
             assertTrue(runId > 0, "write() must return a valid dq_run.id even for empty metrics");
             assertEquals(1, countRows("dq_run"), "One dq_run record must be inserted");
@@ -454,7 +454,7 @@ class BatchWriterTest {
             writer.write(ctxWithLookup, List.of(
                     dqsScoreBreakdownDetail("PASS"),
                     compositeScoreMetric(95.0)
-            ), null);
+            ), null, 0);
 
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT lookup_code FROM dq_run")) {
@@ -481,7 +481,7 @@ class BatchWriterTest {
             writer.write(defaultCtx(), List.of(
                     dqsScoreBreakdownDetail("PASS"),
                     compositeScoreMetric(87.5)
-            ), null);
+            ), null, 0);
 
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT partition_date FROM dq_run")) {
@@ -507,5 +507,70 @@ class BatchWriterTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new BatchWriter(null),
                 "BatchWriter constructor must reject null Connection with IllegalArgumentException");
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC1 (Story 3-4): rerunNumber stored in dq_run
+    //
+    // TDD RED PHASE: Tests below WILL FAIL until:
+    //   1. BatchWriter.write() signature gains int rerunNumber as 4th parameter
+    //   2. insertDqRun() replaces ps.setInt(6, 0) with ps.setInt(6, rerunNumber)
+    //   3. All existing call sites updated to pass 0 as 4th arg (done above)
+    // ---------------------------------------------------------------------------
+
+    /**
+     * [P0] AC1 (3-4): BatchWriter.write() stores the provided rerunNumber in dq_run.rerun_number.
+     *
+     * TDD RED: Will fail until write() signature gains int rerunNumber as 4th parameter
+     * and insertDqRun() uses ps.setInt(6, rerunNumber) instead of ps.setInt(6, 0).
+     */
+    @Test
+    void writeStoresRerunNumberInDqRun() throws Exception {
+
+        try (Connection writeConn = freshConn()) {
+            BatchWriter writer = new BatchWriter(writeConn);
+            List<DqMetric> metrics = List.of(
+                    dqsScoreBreakdownDetail("PASS"),
+                    compositeScoreMetric(87.5)
+            );
+
+            // Write with rerunNumber=2 (simulating second rerun)
+            writer.write(defaultCtx(), metrics, null, 2);
+
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT rerun_number FROM dq_run")) {
+                assertTrue(rs.next(), "dq_run row must exist");
+                assertEquals(2, rs.getInt("rerun_number"),
+                        "rerun_number must be stored as 2 — not hardcoded 0");
+            }
+        }
+    }
+
+    /**
+     * [P1] AC1 (3-4): BatchWriter.write() with rerunNumber=0 stores 0 in dq_run.rerun_number.
+     *
+     * TDD RED: Will fail until write() accepts rerunNumber param.
+     * Verifies that existing behavior (rerunNumber=0) still works with the new signature.
+     */
+    @Test
+    void writeStoresZeroRerunNumberForFirstRun() throws Exception {
+
+        try (Connection writeConn = freshConn()) {
+            BatchWriter writer = new BatchWriter(writeConn);
+            List<DqMetric> metrics = List.of(
+                    dqsScoreBreakdownDetail("PASS"),
+                    compositeScoreMetric(92.0)
+            );
+
+            // Write with rerunNumber=0 (first-time run, no rerun)
+            writer.write(defaultCtx(), metrics, null, 0);
+
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT rerun_number FROM dq_run")) {
+                assertTrue(rs.next(), "dq_run row must exist");
+                assertEquals(0, rs.getInt("rerun_number"),
+                        "rerun_number must be 0 for first-time run");
+            }
+        }
     }
 }

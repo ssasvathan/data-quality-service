@@ -6,7 +6,7 @@ from datetime import date, datetime
 
 import yaml
 
-from orchestrator.db import create_orchestration_run, finalize_orchestration_run, get_connection
+from orchestrator.db import create_orchestration_run, expire_previous_run, finalize_orchestration_run, get_connection
 from orchestrator.runner import run_all_paths
 
 logger = logging.getLogger(__name__)
@@ -117,9 +117,29 @@ def main() -> None:
             logger.error("Failed to create orchestration_run for path=%s: %s", path, exc)
             # Do NOT block spark-submit — continue without run_id
 
+    # Rerun management: expire previous metrics before spark-submit (non-fatal on error)
+    rerun_numbers: dict[str, int] = {}  # dataset_name -> next rerun_number
+    if args.rerun and args.datasets:
+        expiry_ts = datetime.now()
+        for dataset in args.datasets:
+            try:
+                conn = get_connection(db_url)
+                try:
+                    prev_rerun = expire_previous_run(conn, dataset, partition_date, expiry_ts)
+                    rerun_numbers[dataset] = (prev_rerun or 0) + 1
+                finally:
+                    conn.close()
+            except Exception as exc:  # noqa: BLE001
+                logger.error(
+                    "Failed to expire previous run for dataset=%s: %s — using rerun_number=0",
+                    dataset, exc,
+                )
+                rerun_numbers[dataset] = 0  # safe default: may cause duplicate if old run not expired
+
     results = run_all_paths(
         parent_paths, partition_date, spark_config, args.datasets,
         orchestration_run_ids=orchestration_run_ids if orchestration_run_ids else None,
+        rerun_numbers=rerun_numbers if rerun_numbers else None,
     )
 
     # Finalize each orchestration run record (non-fatal on DB error)

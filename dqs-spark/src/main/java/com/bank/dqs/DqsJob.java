@@ -60,7 +60,7 @@ public class DqsJob {
      * Value holder for parsed CLI arguments.
      * Package-private to allow unit testing via DqsJobArgParserTest.
      */
-    record DqsJobArgs(String parentPath, LocalDate partitionDate, Long orchestrationRunId) {}
+    record DqsJobArgs(String parentPath, LocalDate partitionDate, Long orchestrationRunId, int rerunNumber) {}
 
     // ---------------------------------------------------------------------------
     // Argument parsing
@@ -95,6 +95,7 @@ public class DqsJob {
         String parentPath = null;
         LocalDate partitionDate = LocalDate.now();
         Long orchestrationRunId = null;
+        int rerunNumber = 0;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -132,6 +133,19 @@ public class DqsJob {
                                         + orchIdStr, e);
                     }
                 }
+                case "--rerun-number" -> {
+                    if (i + 1 >= args.length) {
+                        throw new IllegalArgumentException(
+                                "--rerun-number flag requires a value but none was provided");
+                    }
+                    String rerunStr = args[++i];
+                    try {
+                        rerunNumber = Integer.parseInt(rerunStr);
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException(
+                                "Invalid --rerun-number value. Expected an integer, got: " + rerunStr, e);
+                    }
+                }
             }
         }
 
@@ -139,7 +153,7 @@ public class DqsJob {
             throw new IllegalArgumentException("--parent-path is required");
         }
 
-        return new DqsJobArgs(parentPath, partitionDate, orchestrationRunId);
+        return new DqsJobArgs(parentPath, partitionDate, orchestrationRunId, rerunNumber);
     }
 
     /**
@@ -267,7 +281,7 @@ public class DqsJob {
 
                 try (Connection writeConn = DriverManager.getConnection(jdbcUrl, dbUser, dbPass)) {
                     BatchWriter writer = new BatchWriter(writeConn);
-                    long runId = writer.write(ctx, datasetMetrics, jobArgs.orchestrationRunId());
+                    long runId = writer.write(ctx, datasetMetrics, jobArgs.orchestrationRunId(), jobArgs.rerunNumber());
                     LOG.info("Dataset {} written: dq_run_id={}", ctx.getDatasetName(), runId);
                 }
             } catch (Exception e) {

@@ -1,18 +1,22 @@
-"""Acceptance tests for orchestrator runner — Story 3-2 + Story 3-3.
+"""Acceptance tests for orchestrator runner — Story 3-2 + Story 3-3 + Story 3-4.
 
 AC Coverage (Story 3-2):
   AC1 — spark-submit invoked once per parent path with correct args
   AC2 — failure isolation: one failed path does not halt others; failure is captured
   AC3 — exit code 0 → path recorded as successful
 
-AC Coverage (Story 3-3 — TDD RED PHASE):
+AC Coverage (Story 3-3):
   AC3 (3-3) — run_spark_job appends --orchestration-run-id to spark-submit command when provided
   AC3 (3-3) — run_all_paths threads orchestration_run_ids dict through to each run_spark_job call
 
-TDD RED PHASE TESTS (Story 3-3):
-  The tests marked with "# TDD RED" will FAIL until:
-  - run_spark_job() gains an optional orchestration_run_id parameter
-  - run_all_paths() gains an optional orchestration_run_ids dict parameter
+AC Coverage (Story 3-4 — TDD RED PHASE):
+  AC1 (3-4) — run_spark_job appends --rerun-number to spark-submit command when provided
+  AC1 (3-4) — run_all_paths threads rerun_numbers dict through to each run_spark_job call
+
+TDD RED PHASE TESTS (Story 3-4):
+  The tests marked with "# TDD RED (3-4)" will FAIL until:
+  - run_spark_job() gains an optional rerun_number: int | None = None parameter
+  - run_all_paths() gains an optional rerun_numbers: dict[str, int] | None = None parameter
 """
 
 from datetime import date
@@ -207,8 +211,8 @@ def test_run_all_paths_passes_datasets_to_each_run_spark_job_call() -> None:
 
     assert mock_run_spark.call_count == 2
     expected_calls = [
-        call("/data/finance/loans", partition_date, SPARK_CONFIG, datasets, orchestration_run_id=None),
-        call("/data/finance/deposits", partition_date, SPARK_CONFIG, datasets, orchestration_run_id=None),
+        call("/data/finance/loans", partition_date, SPARK_CONFIG, datasets, orchestration_run_id=None, rerun_number=None),
+        call("/data/finance/deposits", partition_date, SPARK_CONFIG, datasets, orchestration_run_id=None, rerun_number=None),
     ]
     mock_run_spark.assert_has_calls(expected_calls)
 
@@ -287,10 +291,10 @@ def test_run_all_paths_threads_orchestration_run_ids_to_each_path() -> None:
     # Verify orchestration_run_id is passed correctly for each path
     # run_spark_job(path, partition_date, spark_config, datasets, orchestration_run_id=...)
     assert first_call_kwargs == call(
-        "/data/finance/loans", partition_date, SPARK_CONFIG, None, orchestration_run_id=10
+        "/data/finance/loans", partition_date, SPARK_CONFIG, None, orchestration_run_id=10, rerun_number=None
     )
     assert second_call_kwargs == call(
-        "/data/finance/deposits", partition_date, SPARK_CONFIG, None, orchestration_run_id=11
+        "/data/finance/deposits", partition_date, SPARK_CONFIG, None, orchestration_run_id=11, rerun_number=None
     )
 
 
@@ -318,5 +322,114 @@ def test_run_all_paths_passes_none_run_id_for_path_not_in_dict() -> None:
 
     second_call = mock_run_spark.call_args_list[1]
     assert second_call == call(
-        "/data/finance/deposits", partition_date, SPARK_CONFIG, None, orchestration_run_id=None
+        "/data/finance/deposits", partition_date, SPARK_CONFIG, None, orchestration_run_id=None, rerun_number=None
+    )
+
+
+# ---------------------------------------------------------------------------
+# AC1 (Story 3-4): rerun_number passthrough — TDD RED PHASE
+# ---------------------------------------------------------------------------
+
+
+def test_run_spark_job_appends_rerun_number_to_command() -> None:
+    """AC1 (3-4): run_spark_job appends --rerun-number <n> to spark-submit when rerun_number provided.
+
+    TDD RED (3-4): Will fail until run_spark_job() gains optional rerun_number parameter
+    and appends ['--rerun-number', str(rerun_number)] to the command list.
+    """
+    with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
+        run_spark_job(
+            "/data/finance/loans",
+            date(2026, 3, 25),
+            SPARK_CONFIG,
+            rerun_number=2,
+        )
+
+    cmd = mock_run.call_args[0][0]
+    assert "--rerun-number" in cmd, (
+        "spark-submit command must include --rerun-number when rerun_number is provided"
+    )
+    rerun_idx = cmd.index("--rerun-number")
+    assert cmd[rerun_idx + 1] == "2", (
+        "--rerun-number must be immediately followed by the string value '2'"
+    )
+
+
+def test_run_spark_job_omits_rerun_number_when_none() -> None:
+    """AC1 (3-4): run_spark_job does NOT append --rerun-number when rerun_number is None.
+
+    TDD RED (3-4): Will fail until run_spark_job() gains rerun_number parameter.
+    When rerun_number=None (default), --rerun-number must not appear in command.
+    """
+    with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
+        run_spark_job(
+            "/data/finance/loans",
+            date(2026, 3, 25),
+            SPARK_CONFIG,
+            rerun_number=None,
+        )
+
+    cmd = mock_run.call_args[0][0]
+    assert "--rerun-number" not in cmd, (
+        "--rerun-number must NOT appear in command when rerun_number=None"
+    )
+
+
+def test_run_all_paths_threads_rerun_numbers_to_spark_job() -> None:
+    """AC1 (3-4): run_all_paths computes rerun_number from rerun_numbers dict and passes to run_spark_job.
+
+    TDD RED (3-4): Will fail until run_all_paths() gains optional rerun_numbers dict parameter
+    and passes the correct rerun_number value to run_spark_job.
+    Per story: use max(rerun_numbers.values()) as the single rerun_number for spark-submit.
+    """
+    paths = ["/data/finance/loans"]
+    partition_date = date(2026, 3, 25)
+    rerun_numbers = {"ue90-omni-transactions": 2}
+
+    with patch(
+        "orchestrator.runner.run_spark_job",
+        return_value=JobResult("/data/finance/loans", success=True),
+    ) as mock_run_spark:
+        run_all_paths(
+            paths,
+            partition_date,
+            SPARK_CONFIG,
+            datasets=["ue90-omni-transactions"],
+            rerun_numbers=rerun_numbers,
+        )
+
+    assert mock_run_spark.call_count == 1
+    call_kwargs = mock_run_spark.call_args[1]
+    assert "rerun_number" in call_kwargs, (
+        "run_spark_job must be called with rerun_number kwarg when rerun_numbers is provided"
+    )
+    assert call_kwargs["rerun_number"] == 2, (
+        "rerun_number must be 2 (max value from rerun_numbers dict)"
+    )
+
+
+def test_run_all_paths_passes_none_rerun_number_when_rerun_numbers_is_none() -> None:
+    """AC1 (3-4): run_all_paths passes rerun_number=None to run_spark_job when rerun_numbers is None.
+
+    TDD RED (3-4): Will fail until run_all_paths() handles rerun_numbers=None gracefully.
+    Ensures normal (non-rerun) runs still work without rerun_number in spark-submit.
+    """
+    paths = ["/data/finance/loans"]
+    partition_date = date(2026, 3, 25)
+
+    with patch(
+        "orchestrator.runner.run_spark_job",
+        return_value=JobResult("/data/finance/loans", success=True),
+    ) as mock_run_spark:
+        run_all_paths(
+            paths,
+            partition_date,
+            SPARK_CONFIG,
+            rerun_numbers=None,
+        )
+
+    call_kwargs = mock_run_spark.call_args[1]
+    # rerun_number should be None (not passed as a flag to spark-submit)
+    assert call_kwargs.get("rerun_number") is None, (
+        "rerun_number must be None when rerun_numbers=None (non-rerun run)"
     )
