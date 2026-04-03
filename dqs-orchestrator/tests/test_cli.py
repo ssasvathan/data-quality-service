@@ -702,3 +702,165 @@ def test_main_passes_rerun_numbers_to_run_all_paths(
     assert rerun_numbers.get("ue90-omni-transactions") == 1, (
         "rerun_numbers['ue90-omni-transactions'] must be 1 when previous rerun_number was 0"
     )
+
+
+# ---------------------------------------------------------------------------
+# Story 3-5 ATDD tests — TDD RED PHASE
+# All tests below WILL FAIL until cli.py imports compose_summary_email,
+# send_summary_email, query_run_summary, RunSummary and wires the email block
+# after the finalization loop.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# AC1 + AC2: main() calls send_summary_email after finalize — TDD RED (3-5)
+# ---------------------------------------------------------------------------
+
+
+def _write_config_with_email(tmp_path, parent_paths_file: str) -> str:
+    """Helper: write orchestrator config with email block configured."""
+    config_file = tmp_path / "orchestrator_with_email.yaml"
+    config_file.write_text(
+        "database:\n"
+        "  url: postgresql://localhost/test\n"
+        "spark:\n"
+        "  submit_path: spark-submit\n"
+        "  master: yarn\n"
+        f"parent_paths_config: {parent_paths_file}\n"
+        "email:\n"
+        "  smtp_host: localhost\n"
+        "  smtp_port: 25\n"
+        "  from_address: dqs-alerts@example.com\n"
+        "  to_addresses:\n"
+        "    - data-engineering@example.com\n"
+        "  dashboard_url: http://localhost:5173/summary\n"
+    )
+    return str(config_file)
+
+
+def test_main_calls_send_summary_email_after_finalize(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC1+AC2 (3-5): main() calls send_summary_email once per run_id after finalize loop.
+
+    TDD RED (3-5): Will fail until cli.py imports and wires the email block after finalization.
+    Mock targets (all must be imported at module level in cli.py):
+      - 'orchestrator.cli.query_run_summary'
+      - 'orchestrator.cli.compose_summary_email'
+      - 'orchestrator.cli.send_summary_email'
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_config_with_email(tmp_path, str(parent_paths_file))
+
+    mock_send = MagicMock()
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260403"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=42), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.query_run_summary", return_value={
+             "run_id": 42,
+             "parent_path": "/data/finance/loans",
+             "start_time": "2026-04-03T08:00:00",
+             "end_time": "2026-04-03T09:15:00",
+             "total_datasets": 10,
+             "passed_datasets": 10,
+             "failed_datasets": 0,
+             "error_summary": None,
+             "check_type_failures": {},
+             "failed_dataset_names": [],
+             "dashboard_url": "",
+         }), \
+         patch("orchestrator.cli.compose_summary_email",
+               return_value=("DQS Run Summary — PASSED", "Run completed.")), \
+         patch("orchestrator.cli.send_summary_email", mock_send):
+        main()
+
+    # send_summary_email must be called once (one run_id for one parent path)
+    assert mock_send.call_count == 1, (
+        f"send_summary_email must be called once per run_id, got {mock_send.call_count}. "
+        "Check that cli.py wires the email block after the finalization loop."
+    )
+
+
+def test_main_email_error_does_not_affect_exit_code(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC3 (3-5): Exception in send_summary_email does NOT change exit code — email errors are non-fatal.
+
+    TDD RED (3-5): Will fail until cli.py wraps the email block in try/except Exception.
+    Per story dev notes: 'Any exception in the email block must not change sys.exit(1) logic'.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_config_with_email(tmp_path, str(parent_paths_file))
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260403"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=42), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.query_run_summary", return_value={
+             "run_id": 42,
+             "parent_path": "/data/finance/loans",
+             "start_time": "2026-04-03T08:00:00",
+             "end_time": None,
+             "total_datasets": 1,
+             "passed_datasets": 1,
+             "failed_datasets": 0,
+             "error_summary": None,
+             "check_type_failures": {},
+             "failed_dataset_names": [],
+             "dashboard_url": "",
+         }), \
+         patch("orchestrator.cli.compose_summary_email",
+               return_value=("DQS Run Summary — PASSED", "Run completed.")), \
+         patch("orchestrator.cli.send_summary_email",
+               side_effect=Exception("SMTP connection refused")):
+        # All spark results succeeded → must NOT sys.exit(1) due to email failure
+        main()  # If this raises SystemExit(1), the test fails correctly (TDD red)
+
+
+def test_main_skips_email_when_no_smtp_config(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC3 (3-5): main() skips email silently when 'email' key missing from orchestrator config.
+
+    TDD RED (3-5): Will fail until cli.py guards the email block with
+    'if email_config.get("smtp_host") and email_config.get("to_addresses")'.
+    Per story dev notes: email is skipped (not an error) when smtp_host missing/empty.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    # Use minimal config WITHOUT email block
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_send = MagicMock()
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260403"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=42), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"), \
+         patch("orchestrator.cli.send_summary_email", mock_send):
+        main()
+
+    mock_send.assert_not_called(), (
+        "send_summary_email must NOT be called when email block is absent from orchestrator config"
+    )

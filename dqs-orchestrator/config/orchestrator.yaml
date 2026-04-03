@@ -18,3 +18,4 @@ email:
   from_address: dqs-alerts@example.com
   to_addresses:
     - data-engineering@example.com
+  dashboard_url: http://localhost:5173/summary

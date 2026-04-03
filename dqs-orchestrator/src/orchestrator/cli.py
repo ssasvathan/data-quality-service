@@ -6,7 +6,15 @@ from datetime import date, datetime
 
 import yaml
 
-from orchestrator.db import create_orchestration_run, expire_previous_run, finalize_orchestration_run, get_connection
+from orchestrator.db import (
+    create_orchestration_run,
+    expire_previous_run,
+    finalize_orchestration_run,
+    get_connection,
+    query_run_summary,
+)
+from orchestrator.email import compose_summary_email, send_summary_email
+from orchestrator.models import RunSummary
 from orchestrator.runner import run_all_paths
 
 logger = logging.getLogger(__name__)
@@ -165,6 +173,26 @@ def main() -> None:
                 conn.close()
         except Exception as exc:  # noqa: BLE001
             logger.error("Failed to finalize orchestration_run id=%d: %s", run_id, exc)
+
+    # Send summary email per path (non-fatal — email errors never affect exit code)
+    email_config = orchestrator_config.get("email", {})
+    if email_config.get("smtp_host") and email_config.get("to_addresses"):
+        for result in results:
+            run_id = orchestration_run_ids.get(result.parent_path)
+            if run_id is None:
+                continue
+            try:
+                conn = get_connection(db_url)
+                try:
+                    summary_dict = query_run_summary(conn, run_id, partition_date)
+                finally:
+                    conn.close()
+                summary_dict["dashboard_url"] = email_config.get("dashboard_url", "")
+                run_summary = RunSummary(**summary_dict)
+                subject, body = compose_summary_email(run_summary)
+                send_summary_email(subject, body, email_config)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Failed to send summary email for path=%s: %s", result.parent_path, exc)
 
     succeeded = sum(1 for r in results if r.success)
     failed = len(results) - succeeded

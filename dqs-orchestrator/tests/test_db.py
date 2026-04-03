@@ -443,3 +443,125 @@ def test_get_next_rerun_number_queries_all_history_including_expired() -> None:
     call_params = mock_cursor.execute.call_args[0][1]
     assert "ue90-omni-transactions" in call_params
     assert partition_date in call_params
+
+
+# ---------------------------------------------------------------------------
+# Story 3-5 ATDD tests — TDD RED PHASE
+# All tests below WILL FAIL until query_run_summary() is added to db.py.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# AC1: query_run_summary — returns orchestration run + failed datasets + check-type counts
+# ---------------------------------------------------------------------------
+
+
+def test_query_run_summary_returns_orchestration_run_data() -> None:
+    """AC1: query_run_summary() returns a dict with dq_orchestration_run fields.
+
+    TDD RED: Will raise ImportError until query_run_summary is added to db.py.
+    The returned dict must have keys matching RunSummary field names:
+    run_id, parent_path, start_time, end_time, total_datasets, passed_datasets,
+    failed_datasets, error_summary.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import query_run_summary  # noqa: PLC0415
+
+    start_time = datetime(2026, 4, 3, 8, 0, 0)
+    end_time = datetime(2026, 4, 3, 9, 15, 0)
+
+    mock_conn, mock_cursor = make_mock_conn()
+    # Query 1: dq_orchestration_run row
+    # Columns: id, parent_path, run_status, start_time, end_time,
+    #          total_datasets, passed_datasets, failed_datasets, error_summary
+    mock_cursor.fetchone.return_value = (
+        42, "/data/finance/loans", "completed", start_time, end_time,
+        10, 8, 2, None,
+    )
+    # Query 2: failed datasets (list)
+    # Query 3: check-type failure counts (list)
+    mock_cursor.fetchall.side_effect = [
+        [("ue90-omni-transactions",), ("ue90-card-balances",)],  # failed datasets
+        [("volume", 3), ("schema", 2)],  # check-type counts
+    ]
+
+    partition_date = date(2026, 4, 3)
+    result = query_run_summary(mock_conn, orchestration_run_id=42, partition_date=partition_date)
+
+    assert result["run_id"] == 42, "result['run_id'] must equal orchestration_run_id"
+    assert result["parent_path"] == "/data/finance/loans", "result must include parent_path"
+    assert result["start_time"] == start_time, "result must include start_time from the DB row"
+    assert result["end_time"] == end_time, "result must include end_time from the DB row"
+    assert result["total_datasets"] == 10, "result must include total_datasets count"
+    assert result["passed_datasets"] == 8, "result must include passed_datasets count"
+    assert result["failed_datasets"] == 2, "result must include failed_datasets count"
+
+
+def test_query_run_summary_returns_failed_datasets() -> None:
+    """AC1: query_run_summary() returns failed dataset names as a list under 'failed_dataset_names'.
+
+    TDD RED: Will fail until query_run_summary executes Query 2 and maps results to
+    'failed_dataset_names' key in the returned dict.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import query_run_summary  # noqa: PLC0415
+
+    mock_conn, mock_cursor = make_mock_conn()
+    mock_cursor.fetchone.return_value = (
+        7, "/data/risk/credit", "completed_with_errors",
+        datetime(2026, 4, 3, 8, 0, 0), datetime(2026, 4, 3, 9, 0, 0),
+        5, 3, 2, None,
+    )
+    mock_cursor.fetchall.side_effect = [
+        [("risk-dataset-a",), ("risk-dataset-b",)],  # Query 2: failed datasets
+        [],  # Query 3: check-type counts (empty)
+    ]
+
+    partition_date = date(2026, 4, 3)
+    result = query_run_summary(mock_conn, orchestration_run_id=7, partition_date=partition_date)
+
+    assert "failed_dataset_names" in result, (
+        "result dict must have 'failed_dataset_names' key for RunSummary(**result) unpacking"
+    )
+    assert "risk-dataset-a" in result["failed_dataset_names"], (
+        "failed_dataset_names must include 'risk-dataset-a' from dq_run query"
+    )
+    assert "risk-dataset-b" in result["failed_dataset_names"], (
+        "failed_dataset_names must include 'risk-dataset-b' from dq_run query"
+    )
+
+
+def test_query_run_summary_returns_check_type_failure_counts() -> None:
+    """AC1: query_run_summary() returns check-type failure counts as dict under 'check_type_failures'.
+
+    TDD RED: Will fail until query_run_summary executes Query 3 and maps results to
+    'check_type_failures' key as dict[str, int] in the returned dict.
+    """
+    from datetime import date  # noqa: PLC0415
+
+    from orchestrator.db import query_run_summary  # noqa: PLC0415
+
+    mock_conn, mock_cursor = make_mock_conn()
+    mock_cursor.fetchone.return_value = (
+        99, "/data/finance/loans", "completed_with_errors",
+        datetime(2026, 4, 3, 8, 0, 0), None,
+        3, 0, 3, None,
+    )
+    mock_cursor.fetchall.side_effect = [
+        [("dataset-x",), ("dataset-y",), ("dataset-z",)],  # Query 2: failed datasets
+        [("volume", 3), ("schema", 2)],  # Query 3: check-type counts
+    ]
+
+    partition_date = date(2026, 4, 3)
+    result = query_run_summary(mock_conn, orchestration_run_id=99, partition_date=partition_date)
+
+    assert "check_type_failures" in result, (
+        "result dict must have 'check_type_failures' key for RunSummary(**result) unpacking"
+    )
+    assert result["check_type_failures"].get("volume") == 3, (
+        "check_type_failures['volume'] must equal 3 (from grouped COUNT query)"
+    )
+    assert result["check_type_failures"].get("schema") == 2, (
+        "check_type_failures['schema'] must equal 2 (from grouped COUNT query)"
+    )
