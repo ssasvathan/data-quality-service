@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DQS Design Directions</title>
+<style>
+  :root {
+    --neutral-50: #FAFAFA;
+    --neutral-100: #F5F5F5;
+    --neutral-200: #EEEEEE;
+    --neutral-300: #E0E0E0;
+    --neutral-500: #9E9E9E;
+    --neutral-700: #616161;
+    --neutral-900: #212121;
+    --success: #2E7D32;
+    --success-light: #E8F5E9;
+    --warning: #ED6C02;
+    --warning-light: #FFF3E0;
+    --error: #D32F2F;
+    --error-light: #FFEBEE;
+    --primary: #1565C0;
+    --primary-light: #E3F2FD;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #fff;
+    color: var(--neutral-900);
+  }
+  .mono { font-family: 'SF Mono', 'Fira Code', Menlo, monospace; }
+
+  /* Navigation */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--neutral-900); color: #fff;
+    padding: 12px 32px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .nav h1 { font-size: 16px; font-weight: 600; margin-right: 24px; }
+  .nav-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; padding: 6px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 13px; transition: all 0.2s;
+  }
+  .nav-btn:hover, .nav-btn.active {
+    background: var(--primary); border-color: var(--primary);
+  }
+  .nav-desc { margin-left: auto; font-size: 12px; color: rgba(255,255,255,0.6); }
+
+  /* Mockup containers */
+  .mockup { display: none; padding-top: 56px; min-height: 100vh; }
+  .mockup.active { display: block; }
+
+  /* Shared header bar for mockups */
+  .mock-header {
+    background: #fff; border-bottom: 1px solid var(--neutral-200);
+    padding: 12px 32px; display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 56px; z-index: 50;
+  }
+  .mock-header .breadcrumb {
+    font-size: 14px; color: var(--neutral-500);
+  }
+  .mock-header .breadcrumb a {
+    color: var(--primary); text-decoration: none;
+  }
+  .mock-header .search-bar {
+    margin-left: auto; padding: 8px 16px; border: 1px solid var(--neutral-200);
+    border-radius: 8px; width: 320px; font-size: 14px; background: var(--neutral-50);
+    outline: none; transition: border-color 0.2s;
+  }
+  .mock-header .search-bar:focus { border-color: var(--primary); }
+  .mock-header .time-toggle {
+    display: flex; gap: 0; border: 1px solid var(--neutral-200); border-radius: 6px; overflow: hidden;
+  }
+  .mock-header .time-btn {
+    padding: 6px 12px; font-size: 12px; border: none; background: #fff;
+    cursor: pointer; color: var(--neutral-700);
+  }
+  .mock-header .time-btn.active {
+    background: var(--primary-light); color: var(--primary); font-weight: 600;
+  }
+
+  /* Content area */
+  .content { padding: 24px 32px; max-width: 1440px; margin: 0 auto; }
+
+  /* Summary stats bar */
+  .stats-bar {
+    display: flex; gap: 16px; margin-bottom: 24px;
+  }
+  .stat-box {
+    flex: 1; padding: 16px 20px; background: #fff;
+    border: 1px solid var(--neutral-200); border-radius: 8px;
+  }
+  .stat-box .stat-label { font-size: 12px; color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-box .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .stat-box .stat-sub { font-size: 12px; color: var(--neutral-500); margin-top: 2px; }
+
+  /* Cards */
+  .card-grid { display: grid; gap: 24px; }
+  .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .card-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: #fff; border: 1px solid var(--neutral-200); border-radius: 8px;
+    padding: 20px; cursor: pointer; transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--primary); }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .card-subtitle { font-size: 12px; color: var(--neutral-500); margin-bottom: 12px; }
+
+  /* Score display */
+  .score { font-weight: 700; }
+  .score.lg { font-size: 28px; }
+  .score.md { font-size: 18px; }
+  .score.green { color: var(--success); }
+  .score.yellow { color: var(--warning); }
+  .score.red { color: var(--error); }
+
+  /* Status chips */
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 10px; border-radius: 12px; font-size: 11px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .chip.pass { background: var(--success-light); color: var(--success); }
+  .chip.warn { background: var(--warning-light); color: var(--warning); }
+  .chip.fail { background: var(--error-light); color: var(--error); }
+
+  /* Trend arrows */
+  .trend { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+  .trend.up { color: var(--success); }
+  .trend.down { color: var(--error); }
+  .trend.flat { color: var(--neutral-500); }
+
+  /* Sparkline placeholder */
+  .sparkline {
+    height: 32px; width: 100%; margin: 8px 0; position: relative;
+    overflow: hidden;
+  }
+  .sparkline svg { width: 100%; height: 100%; }
+
+  /* Progress bar for score */
+  .score-bar {
+    height: 6px; border-radius: 3px; background: var(--neutral-200);
+    margin-top: 8px; overflow: hidden;
+  }
+  .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+  /* Table styles */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; padding: 10px 16px; font-size: 12px;
+    color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--neutral-200); font-weight: 600;
+  }
+  .data-table td {
+    padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--neutral-200);
+  }
+  .data-table tr:hover { background: var(--neutral-50); cursor: pointer; }
+
+  /* Section headers */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-header h2 { font-size: 20px; font-weight: 600; }
+  .section-header .count { font-size: 14px; color: var(--neutral-500); }
+
+  /* Direction label */
+  .direction-label {
+    background: var(--primary-light); color: var(--primary);
+    padding: 12px 32px; font-size: 14px; font-weight: 600;
+    border-bottom: 1px solid var(--neutral-200);
+  }
+
+  /* Split view layout */
+  .split-layout { display: flex; gap: 0; min-height: calc(100vh - 112px); }
+  .split-list {
+    width: 380px; border-right: 1px solid var(--neutral-200);
+    overflow-y: auto; background: #fff;
+  }
+  .split-detail { flex: 1; padding: 24px 32px; background: var(--neutral-50); }
+  .split-item {
+    padding: 16px 20px; border-bottom: 1px solid var(--neutral-200);
+    cursor: pointer; transition: background 0.15s;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .split-item:hover { background: var(--neutral-50); }
+  .split-item.active { background: var(--primary-light); border-left: 3px solid var(--primary); }
+
+  /* Kanban columns */
+  .kanban { display: flex; gap: 16px; min-height: calc(100vh - 180px); }
+  .kanban-col { flex: 1; min-width: 0; }
+  .kanban-header {
+    padding: 12px 16px; border-radius: 8px 8px 0 0; font-size: 14px;
+    font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+  }
+  .kanban-header.healthy { background: var(--success-light); color: var(--success); }
+  .kanban-header.degraded { background: var(--warning-light); color: var(--warning); }
+  .kanban-header.critical { background: var(--error-light); color: var(--error); }
+  .kanban-body {
+    border: 1px solid var(--neutral-200); border-top: none;
+    border-radius: 0 0 8px 8px; padding: 12px; display: flex;
+    flex-direction: column; gap: 8px; background: var(--neutral-50);
+  }
+  .kanban-card {
+    background: #fff; border: 1px solid var(--neutral-200); border-radius: 6px;
+    padding: 12px; cursor: pointer; transition: border-color 0.2s;
+  }
+  .kanban-card:hover { border-color: var(--primary); }
+
+  /* Detail view components */
+  .detail-header { margin-bottom: 24px; }
+  .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+  .check-list { display: flex; flex-direction: column; gap: 8px; }
+  .check-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: #fff; border: 1px solid var(--neutral-200);
+    border-radius: 8px;
+  }
+  .check-name { flex: 1; font-size: 14px; }
+  .check-weight { font-size: 12px; color: var(--neutral-500); }
+
+  /* Donut chart placeholder */
+  .donut {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 12px solid var(--neutral-200); position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .donut.green { border-color: var(--success); border-top-color: var(--neutral-200); }
+  .donut.yellow { border-color: var(--warning); border-top-color: var(--neutral-200); border-right-color: var(--neutral-200); }
+
+  /* Compact list direction */
+  .compact-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 0; border-bottom: 1px solid var(--neutral-200);
+  }
+  .compact-row .name { flex: 1; font-size: 14px; }
+  .compact-row .mini-spark { width: 80px; height: 24px; }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<div class="nav">
+  <h1>DQS Design Directions</h1>
+  <button class="nav-btn active" onclick="show(1)">1. Card Grid</button>
+  <button class="nav-btn" onclick="show(2)">2. Stats + Table</button>
+  <button class="nav-btn" onclick="show(3)">3. Dashboard Panels</button>
+  <button class="nav-btn" onclick="show(4)">4. Master-Detail</button>
+  <button class="nav-btn" onclick="show(5)">5. Status Columns</button>
+  <button class="nav-btn" onclick="show(6)">6. Minimal Density</button>
+  <span class="nav-desc">Click each direction to explore</span>
+</div>
+
+<!-- Direction 1: Card Grid (Datadog-inspired) -->
+<div id="d1" class="mockup active">
+  <div class="direction-label">Direction 1: Card Grid &mdash; Datadog-inspired health grid. Scan for color, click to investigate. Best for visual scanning of many entities.</div>
+  <div class="mock-header">
+    <div class="breadcrumb"><a href="#">Summary</a></div>
+    <div class="time-toggle">
+      <button class="time-btn">7d</button>
+      <button class="time-btn active">30d</button>
+      <button class="time-btn">90d</button>
+    </div>
+    <input class="search-bar" placeholder="Search datasets... (Ctrl+K)" />
+  </div>
+  <div class="content">
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div class="stat-label">Total Datasets</div>
+        <div class="stat-value">47</div>
+        <div class="stat-sub">across 4 LOBs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Healthy</div>
+        <div class="stat-value" style="color:var(--success)">41</div>
+        <div class="stat-sub">87% passing</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Degraded</div>
+        <div class="stat-value" style="color:var(--warning)">3</div>
+        <div class="stat-sub">score 60-79</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Critical</div>
+        <div class="stat-value" style="color:var(--error)">3</div>
+        <div class="stat-sub">score &lt; 60</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>LOBs</h2>
+      <span class="count">4 lines of business</span>
+    </div>
+    <div class="card-grid cols-3">
+      <div class="card">
+        <div class="card-title">Consumer Banking</div>
+        <div class="card-subtitle">18 datasets</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span class="score md green">87</span>
+          <span class="trend up">&#9650; +3</span>
+        </div>
+        <div class="score-bar"><div class="score-bar-fill" style="width:87%;background:var(--success)"></div></div>
+        <div class="sparkline"><svg viewBox="0 0 200 32"><polyline points="0,28 30,24 60,20 90,18 120,15 150,12 180,8 200,6" fill="none" stroke="#2E7D32" stroke-width="2"/></svg></div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <span class="chip pass">16 pass</span>
+          <span class="chip warn">1 warn</span>
+          <span class="chip fail">1 fail</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Markets</div>
+        <div class="card-subtitle">12 datasets</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span class="score md yellow">72</span>
+          <span class="trend down">&#9660; -5</span>
+        </div>
+        <div class="score-bar"><div class="score-bar-fill" style="width:72%;background:var(--warning)"></div></div>
+        <div class="sparkline"><svg viewBox="0 0 200 32"><polyline points="0,8 30,10 60,12 90,14 120,18 150,22 180,24 200,26" fill="none" stroke="#ED6C02" stroke-width="2"/></svg></div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <span class="chip pass">9 pass</span>
+          <span class="chip warn">2 warn</span>
+          <span class="chip fail">1 fail</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Wealth Management</div>
+        <div class="card-subtitle">10 datasets</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span class="score md green">94</span>
+          <span class="trend up">&#9650; +1</span>
+        </div>
+        <div class="score-bar"><div class="score-bar-fill" style="width:94%;background:var(--success)"></div></div>
+        <div class="sparkline"><svg viewBox="0 0 200 32"><polyline points="0,6 30,6 60,5 90,5 120,4 150,4 180,4 200,3" fill="none" stroke="#2E7D32" stroke-width="2"/></svg></div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <span class="chip pass">10 pass</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Commercial Banking</div>
+        <div class="card-subtitle">7 datasets</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <span class="score md red">48</span>
+          <span class="trend down">&#9660; -12</span>
+        </div>
+        <div class="score-bar"><div class="score-bar-fill" style="width:48%;background:var(--error)"></div></div>
+        <div class="sparkline"><svg viewBox="0 0 200 32"><polyline points="0,8 30,10 60,14 90,16 120,20 150,24 180,26 200,28" fill="none" stroke="#D32F2F" stroke-width="2"/></svg></div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <span class="chip pass">5 pass</span>
+          <span class="chip fail">2 fail</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Direction 2: Stats + Table (Grafana-inspired) -->
+<div id="d2" class="mockup">
+  <div class="direction-label">Direction 2: Stats Header + Data Table &mdash; Dense, efficient, information-rich. Summary stats at top, sortable table below. Best for power users who want to scan many datasets quickly.</div>
+  <div class="mock-header">
+    <div class="breadcrumb"><a href="#">Summary</a> &rsaquo; <a href="#">Consumer Banking</a></div>
+    <div class="time-toggle">
+      <button class="time-btn">7d</button>
+      <button class="time-btn active">30d</button>
+      <button class="time-btn">90d</button>
+    </div>
+    <input class="search-bar" placeholder="Search datasets... (Ctrl+K)" />
+  </div>
+  <div class="content">
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div class="stat-label">Consumer Banking</div>
+        <div class="stat-value">18 <span style="font-size:14px;color:var(--neutral-500)">datasets</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Avg DQS Score</div>
+        <div class="stat-value" style="color:var(--success)">87</div>
+        <div class="stat-sub"><span class="trend up">&#9650; +3 vs last week</span></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Checks Passing</div>
+        <div class="stat-value">84/90</div>
+        <div class="stat-sub">93% pass rate</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Last Run</div>
+        <div class="stat-value" style="font-size:18px">5:42 AM ET</div>
+        <div class="stat-sub">Run #1847 &bull; 52 min</div>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Dataset</th>
+          <th>DQS Score</th>
+          <th>Trend</th>
+          <th>Freshness</th>
+          <th>Volume</th>
+          <th>Schema</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono" style="font-size:13px">ue90-omni-transactions</td>
+          <td><span class="score md green">94</span></td>
+          <td>
+            <div class="sparkline" style="height:24px;width:80px;display:inline-block">
+              <svg viewBox="0 0 80 24"><polyline points="0,20 12,18 24,14 36,12 48,8 60,6 72,4 80,3" fill="none" stroke="#2E7D32" stroke-width="1.5"/></svg>
+            </div>
+          </td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="mono" style="font-size:13px">ue90-omni-accounts</td>
+          <td><span class="score md green">91</span></td>
+          <td>
+            <div class="sparkline" style="height:24px;width:80px;display:inline-block">
+              <svg viewBox="0 0 80 24"><polyline points="0,10 12,10 24,8 36,8 48,6 60,5 72,5 80,4" fill="none" stroke="#2E7D32" stroke-width="1.5"/></svg>
+            </div>
+          </td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">PASS</span></td>
+        </tr>
+        <tr>
+          <td class="mono" style="font-size:13px">fx22-market-rates</td>
+          <td><span class="score md yellow">68</span></td>
+          <td>
+            <div class="sparkline" style="height:24px;width:80px;display:inline-block">
+              <svg viewBox="0 0 80 24"><polyline points="0,6 12,8 24,10 36,12 48,14 60,16 72,16 80,18" fill="none" stroke="#ED6C02" stroke-width="1.5"/></svg>
+            </div>
+          </td>
+          <td><span class="chip warn">STALE</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip warn">WARN</span></td>
+        </tr>
+        <tr>
+          <td class="mono" style="font-size:13px">cb10-commercial-loans</td>
+          <td><span class="score md red">42</span></td>
+          <td>
+            <div class="sparkline" style="height:24px;width:80px;display:inline-block">
+              <svg viewBox="0 0 80 24"><polyline points="0,4 12,6 24,8 36,12 48,16 60,18 72,20 80,22" fill="none" stroke="#D32F2F" stroke-width="1.5"/></svg>
+            </div>
+          </td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip fail">-80%</span></td>
+          <td><span class="chip fail">DRIFT</span></td>
+          <td><span class="chip fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <td class="mono" style="font-size:13px">wm05-portfolio-positions</td>
+          <td><span class="score md green">96</span></td>
+          <td>
+            <div class="sparkline" style="height:24px;width:80px;display:inline-block">
+              <svg viewBox="0 0 80 24"><polyline points="0,4 12,4 24,3 36,3 48,3 60,2 72,2 80,2" fill="none" stroke="#2E7D32" stroke-width="1.5"/></svg>
+            </div>
+          </td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">OK</span></td>
+          <td><span class="chip pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Direction 3: Dashboard Panels -->
+<div id="d3" class="mockup">
+  <div class="direction-label">Direction 3: Dashboard Panels &mdash; Grafana-inspired panel layout. Summary KPIs at top, LOB panels with embedded dataset cards. Best for overview-first with visual richness.</div>
+  <div class="mock-header">
+    <div class="breadcrumb"><a href="#">Summary</a></div>
+    <div class="time-toggle">
+      <button class="time-btn">7d</button>
+      <button class="time-btn active">30d</button>
+      <button class="time-btn">90d</button>
+    </div>
+    <input class="search-bar" placeholder="Search datasets... (Ctrl+K)" />
+  </div>
+  <div class="content">
+    <!-- KPI Row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:16px;margin-bottom:32px;">
+      <div style="text-align:center;padding:20px;background:var(--neutral-50);border-radius:8px;border:1px solid var(--neutral-200);">
+        <div style="font-size:36px;font-weight:700;color:var(--success)">82</div>
+        <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">Overall DQS Score</div>
+        <div class="trend up" style="justify-content:center;margin-top:4px">&#9650; +2</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--neutral-50);border-radius:8px;border:1px solid var(--neutral-200);">
+        <div style="font-size:36px;font-weight:700">47</div>
+        <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">Datasets Monitored</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--success-light);border-radius:8px;border:1px solid var(--success);">
+        <div style="font-size:36px;font-weight:700;color:var(--success)">41</div>
+        <div style="font-size:12px;color:var(--success);margin-top:4px;">Healthy</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--warning-light);border-radius:8px;border:1px solid var(--warning);">
+        <div style="font-size:36px;font-weight:700;color:var(--warning)">3</div>
+        <div style="font-size:12px;color:var(--warning);margin-top:4px;">Degraded</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--error-light);border-radius:8px;border:1px solid var(--error);">
+        <div style="font-size:36px;font-weight:700;color:var(--error)">3</div>
+        <div style="font-size:12px;color:var(--error);margin-top:4px;">Critical</div>
+      </div>
+    </div>
+
+    <!-- LOB Panels -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div class="card" style="cursor:default">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div class="card-title">Consumer Banking</div>
+            <div class="card-subtitle">18 datasets</div>
+          </div>
+          <div style="text-align:right">
+            <span class="score md green">87</span>
+            <span class="trend up">&#9650; +3</span>
+          </div>
+        </div>
+        <div class="sparkline" style="height:48px;margin-bottom:12px;">
+          <svg viewBox="0 0 400 48"><polyline points="0,40 50,36 100,30 150,26 200,22 250,18 300,14 350,10 400,8" fill="none" stroke="#2E7D32" stroke-width="2"/><line x1="0" y1="12" x2="400" y2="12" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="4"/></svg>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="chip pass">16 pass</span>
+          <span class="chip warn">1 warn</span>
+          <span class="chip fail">1 fail</span>
+        </div>
+      </div>
+      <div class="card" style="cursor:default">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div class="card-title">Markets</div>
+            <div class="card-subtitle">12 datasets</div>
+          </div>
+          <div style="text-align:right">
+            <span class="score md yellow">72</span>
+            <span class="trend down">&#9660; -5</span>
+          </div>
+        </div>
+        <div class="sparkline" style="height:48px;margin-bottom:12px;">
+          <svg viewBox="0 0 400 48"><polyline points="0,10 50,14 100,18 150,22 200,26 250,30 300,34 350,36 400,38" fill="none" stroke="#ED6C02" stroke-width="2"/><line x1="0" y1="12" x2="400" y2="12" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="4"/></svg>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="chip pass">9 pass</span>
+          <span class="chip warn">2 warn</span>
+          <span class="chip fail">1 fail</span>
+        </div>
+      </div>
+      <div class="card" style="cursor:default">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div class="card-title">Wealth Management</div>
+            <div class="card-subtitle">10 datasets</div>
+          </div>
+          <div style="text-align:right">
+            <span class="score md green">94</span>
+            <span class="trend flat">&ndash; 0</span>
+          </div>
+        </div>
+        <div class="sparkline" style="height:48px;margin-bottom:12px;">
+          <svg viewBox="0 0 400 48"><polyline points="0,8 50,8 100,7 150,6 200,6 250,6 300,5 350,5 400,5" fill="none" stroke="#2E7D32" stroke-width="2"/><line x1="0" y1="12" x2="400" y2="12" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="4"/></svg>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="chip pass">10 pass</span>
+        </div>
+      </div>
+      <div class="card" style="cursor:default;border-color:var(--error);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div>
+            <div class="card-title">Commercial Banking</div>
+            <div class="card-subtitle">7 datasets</div>
+          </div>
+          <div style="text-align:right">
+            <span class="score md red">48</span>
+            <span class="trend down">&#9660; -12</span>
+          </div>
+        </div>
+        <div class="sparkline" style="height:48px;margin-bottom:12px;">
+          <svg viewBox="0 0 400 48"><polyline points="0,10 50,14 100,20 150,26 200,30 250,34 300,38 350,40 400,42" fill="none" stroke="#D32F2F" stroke-width="2"/><line x1="0" y1="12" x2="400" y2="12" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="4"/></svg>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="chip pass">5 pass</span>
+          <span class="chip fail">2 fail</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Direction 4: Master-Detail Split -->
+<div id="d4" class="mockup">
+  <div class="direction-label">Direction 4: Master-Detail Split &mdash; List on left, detail on right. Click a dataset to see full details without navigating away. Best for investigation workflows.</div>
+  <div class="mock-header">
+    <div class="breadcrumb"><a href="#">Summary</a> &rsaquo; <a href="#">Consumer Banking</a></div>
+    <div class="time-toggle">
+      <button class="time-btn">7d</button>
+      <button class="time-btn active">30d</button>
+      <button class="time-btn">90d</button>
+    </div>
+    <input class="search-bar" placeholder="Search datasets... (Ctrl+K)" />
+  </div>
+  <div class="split-layout">
+    <div class="split-list">
+      <div style="padding:12px 20px;border-bottom:1px solid var(--neutral-200);background:var(--neutral-50);">
+        <div style="font-size:12px;color:var(--neutral-500);">CONSUMER BANKING &bull; 18 DATASETS</div>
+      </div>
+      <div class="split-item">
+        <span class="score md green">94</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600" class="mono">ue90-omni-transactions</div>
+          <div style="font-size:11px;color:var(--neutral-500)">5 checks passed</div>
+        </div>
+        <span class="trend up">&#9650;</span>
+      </div>
+      <div class="split-item active">
+        <span class="score md red">42</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600" class="mono">cb10-commercial-loans</div>
+          <div style="font-size:11px;color:var(--neutral-500)">2 checks failed</div>
+        </div>
+        <span class="trend down">&#9660;</span>
+      </div>
+      <div class="split-item">
+        <span class="score md green">91</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600" class="mono">ue90-omni-accounts</div>
+          <div style="font-size:11px;color:var(--neutral-500)">5 checks passed</div>
+        </div>
+        <span class="trend flat">&ndash;</span>
+      </div>
+      <div class="split-item">
+        <span class="score md yellow">68</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600" class="mono">fx22-market-rates</div>
+          <div style="font-size:11px;color:var(--neutral-500)">1 check warning</div>
+        </div>
+        <span class="trend down">&#9660;</span>
+      </div>
+      <div class="split-item">
+        <span class="score md green">96</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600" class="mono">wm05-portfolio-positions</div>
+          <div style="font-size:11px;color:var(--neutral-500)">5 checks passed</div>
+        </div>
+        <span class="trend up">&#9650;</span>
+      </div>
+      <div class="split-item">
+        <span class="score md green">89</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600" class="mono">ue90-omni-payments</div>
+          <div style="font-size:11px;color:var(--neutral-500)">5 checks passed</div>
+        </div>
+        <span class="trend up">&#9650;</span>
+      </div>
+    </div>
+    <div class="split-detail">
+      <div class="detail-header">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+          <h2 class="mono" style="font-size:18px;">cb10-commercial-loans</h2>
+          <span class="chip fail">FAIL</span>
+        </div>
+        <div style="font-size:13px;color:var(--neutral-500);">Commercial Banking &bull; Source: CB10 &bull; Format: Parquet &bull; Last run: 5:42 AM ET</div>
+      </div>
+      <div class="detail-grid">
+        <div>
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:16px;">
+            <span class="score lg red">42</span>
+            <span class="trend down" style="font-size:14px">&#9660; -12 vs 7 days ago</span>
+          </div>
+          <div class="sparkline" style="height:64px;margin-bottom:24px;background:var(--neutral-50);border-radius:8px;padding:8px;">
+            <svg viewBox="0 0 500 48" style="width:100%;height:100%"><polyline points="0,6 60,8 120,10 180,14 240,18 300,24 360,32 420,38 500,42" fill="none" stroke="#D32F2F" stroke-width="2"/><line x1="0" y1="10" x2="500" y2="10" stroke="#E0E0E0" stroke-width="1" stroke-dasharray="4"/></svg>
+          </div>
+          <h3 style="margin-bottom:12px;">Check Results</h3>
+          <div class="check-list">
+            <div class="check-item">
+              <span class="chip pass">PASS</span>
+              <span class="check-name">Freshness</span>
+              <span class="check-weight">20%</span>
+              <span class="score" style="font-size:14px;color:var(--success)">95</span>
+            </div>
+            <div class="check-item" style="border-color:var(--error);">
+              <span class="chip fail">FAIL</span>
+              <span class="check-name">Volume</span>
+              <span class="check-weight">25%</span>
+              <span class="score" style="font-size:14px;color:var(--error)">12</span>
+            </div>
+            <div class="check-item" style="border-color:var(--error);">
+              <span class="chip fail">FAIL</span>
+              <span class="check-name">Schema</span>
+              <span class="check-weight">20%</span>
+              <span class="score" style="font-size:14px;color:var(--error)">0</span>
+            </div>
+            <div class="check-item">
+              <span class="chip pass">PASS</span>
+              <span class="check-name">Ops</span>
+              <span class="check-weight">15%</span>
+              <span class="score" style="font-size:14px;color:var(--success)">88</span>
+            </div>
+            <div class="check-item">
+              <span class="chip warn">WARN</span>
+              <span class="check-name">DQS Score</span>
+              <span class="check-weight">20%</span>
+              <span class="score" style="font-size:14px;color:var(--warning)">42</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="cursor:default;margin-bottom:16px;">
+            <div style="font-size:12px;color:var(--neutral-500);margin-bottom:8px;">SCORE BREAKDOWN</div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Freshness</span><span>19/20</span></div>
+              <div class="score-bar"><div class="score-bar-fill" style="width:95%;background:var(--success)"></div></div>
+            </div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Volume</span><span>3/25</span></div>
+              <div class="score-bar"><div class="score-bar-fill" style="width:12%;background:var(--error)"></div></div>
+            </div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Schema</span><span>0/20</span></div>
+              <div class="score-bar"><div class="score-bar-fill" style="width:0%;background:var(--error)"></div></div>
+            </div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Ops</span><span>13/15</span></div>
+              <div class="score-bar"><div class="score-bar-fill" style="width:88%;background:var(--success)"></div></div>
+            </div>
+          </div>
+          <div class="card" style="cursor:default;">
+            <div style="font-size:12px;color:var(--neutral-500);margin-bottom:8px;">DATASET INFO</div>
+            <div style="font-size:13px;line-height:2;">
+              <div><span style="color:var(--neutral-500)">Source:</span> CB10</div>
+              <div><span style="color:var(--neutral-500)">LOB:</span> Commercial Banking</div>
+              <div><span style="color:var(--neutral-500)">Format:</span> Parquet</div>
+              <div><span style="color:var(--neutral-500)">Rows:</span> 4,201 <span style="color:var(--error)">(was 21,043)</span></div>
+              <div><span style="color:var(--neutral-500)">Last Updated:</span> 2026-03-30 03:42 ET</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Direction 5: Status Columns (Kanban-inspired) -->
+<div id="d5" class="mockup">
+  <div class="direction-label">Direction 5: Status Columns &mdash; Datasets grouped by health status. Immediately see what needs attention. Best for triage-first workflows.</div>
+  <div class="mock-header">
+    <div class="breadcrumb"><a href="#">Summary</a></div>
+    <div class="time-toggle">
+      <button class="time-btn">7d</button>
+      <button class="time-btn active">30d</button>
+      <button class="time-btn">90d</button>
+    </div>
+    <input class="search-bar" placeholder="Search datasets... (Ctrl+K)" />
+  </div>
+  <div class="content">
+    <div class="kanban">
+      <div class="kanban-col">
+        <div class="kanban-header critical">Critical (3) <span style="font-size:12px;font-weight:400">DQS &lt; 60</span></div>
+        <div class="kanban-body">
+          <div class="kanban-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span class="mono" style="font-size:12px;font-weight:600;">cb10-commercial-loans</span>
+              <span class="score" style="font-size:16px;color:var(--error)">42</span>
+            </div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-bottom:6px;">Commercial Banking</div>
+            <div style="display:flex;gap:4px;">
+              <span class="chip fail" style="font-size:10px">Volume -80%</span>
+              <span class="chip fail" style="font-size:10px">Schema drift</span>
+            </div>
+          </div>
+          <div class="kanban-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span class="mono" style="font-size:12px;font-weight:600;">cb10-collateral-data</span>
+              <span class="score" style="font-size:16px;color:var(--error)">38</span>
+            </div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-bottom:6px;">Commercial Banking</div>
+            <div style="display:flex;gap:4px;">
+              <span class="chip fail" style="font-size:10px">Freshness 48h</span>
+            </div>
+          </div>
+          <div class="kanban-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span class="mono" style="font-size:12px;font-weight:600;">mk15-trade-confirms</span>
+              <span class="score" style="font-size:16px;color:var(--error)">55</span>
+            </div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-bottom:6px;">Markets</div>
+            <div style="display:flex;gap:4px;">
+              <span class="chip fail" style="font-size:10px">Ops anomaly</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-header degraded">Degraded (3) <span style="font-size:12px;font-weight:400">DQS 60-79</span></div>
+        <div class="kanban-body">
+          <div class="kanban-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span class="mono" style="font-size:12px;font-weight:600;">fx22-market-rates</span>
+              <span class="score" style="font-size:16px;color:var(--warning)">68</span>
+            </div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-bottom:6px;">Markets</div>
+            <div style="display:flex;gap:4px;">
+              <span class="chip warn" style="font-size:10px">Freshness stale</span>
+            </div>
+          </div>
+          <div class="kanban-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span class="mono" style="font-size:12px;font-weight:600;">ue90-omni-events</span>
+              <span class="score" style="font-size:16px;color:var(--warning)">74</span>
+            </div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-bottom:6px;">Consumer Banking</div>
+            <div style="display:flex;gap:4px;">
+              <span class="chip warn" style="font-size:10px">Volume -22%</span>
+            </div>
+          </div>
+          <div class="kanban-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <span class="mono" style="font-size:12px;font-weight:600;">mk15-eod-prices</span>
+              <span class="score" style="font-size:16px;color:var(--warning)">71</span>
+            </div>
+            <div style="font-size:11px;color:var(--neutral-500);margin-bottom:6px;">Markets</div>
+            <div style="display:flex;gap:4px;">
+              <span class="chip warn" style="font-size:10px">Schema drift</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="kanban-col" style="flex:2">
+        <div class="kanban-header healthy">Healthy (41) <span style="font-size:12px;font-weight:400">DQS &ge; 80</span></div>
+        <div class="kanban-body" style="flex-direction:row;flex-wrap:wrap;gap:8px;">
+          <div class="kanban-card" style="flex:0 0 calc(50% - 4px);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="mono" style="font-size:12px">ue90-omni-transactions</span>
+              <span class="score" style="font-size:14px;color:var(--success)">94</span>
+            </div>
+          </div>
+          <div class="kanban-card" style="flex:0 0 calc(50% - 4px);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="mono" style="font-size:12px">wm05-portfolio-positions</span>
+              <span class="score" style="font-size:14px;color:var(--success)">96</span>
+            </div>
+          </div>
+          <div class="kanban-card" style="flex:0 0 calc(50% - 4px);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="mono" style="font-size:12px">ue90-omni-accounts</span>
+              <span class="score" style="font-size:14px;color:var(--success)">91</span>
+            </div>
+          </div>
+          <div class="kanban-card" style="flex:0 0 calc(50% - 4px);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="mono" style="font-size:12px">ue90-omni-payments</span>
+              <span class="score" style="font-size:14px;color:var(--success)">89</span>
+            </div>
+          </div>
+          <div class="kanban-card" style="flex:0 0 calc(50% - 4px);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="mono" style="font-size:12px">wm05-client-accounts</span>
+              <span class="score" style="font-size:14px;color:var(--success)">93</span>
+            </div>
+          </div>
+          <div class="kanban-card" style="flex:0 0 calc(50% - 4px);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="mono" style="font-size:12px">cb10-deposit-balances</span>
+              <span class="score" style="font-size:14px;color:var(--success)">88</span>
+            </div>
+          </div>
+          <div style="flex:0 0 100%;text-align:center;padding:8px;font-size:12px;color:var(--neutral-500);">
+            + 35 more healthy datasets
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Direction 6: Minimal Density -->
+<div id="d6" class="mockup">
+  <div class="direction-label">Direction 6: Minimal Density &mdash; Maximum white space, just scores and names. Ultra-clean. Best for "silence is a feature" — calm when healthy, obvious when not.</div>
+  <div class="mock-header">
+    <div class="breadcrumb"><a href="#">Summary</a></div>
+    <div class="time-toggle">
+      <button class="time-btn">7d</button>
+      <button class="time-btn active">30d</button>
+      <button class="time-btn">90d</button>
+    </div>
+    <input class="search-bar" placeholder="Search datasets... (Ctrl+K)" />
+  </div>
+  <div class="content" style="max-width:960px;">
+    <div style="text-align:center;padding:48px 0 32px;">
+      <div style="font-size:64px;font-weight:700;color:var(--success);">82</div>
+      <div style="font-size:14px;color:var(--neutral-500);margin-top:8px;">Overall DQS Score &bull; 47 datasets &bull; <span class="trend up">&#9650; +2</span></div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:48px;padding:24px 0;border-top:1px solid var(--neutral-200);border-bottom:1px solid var(--neutral-200);margin-bottom:32px;">
+      <div style="text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:var(--success)">41</div>
+        <div style="font-size:12px;color:var(--neutral-500)">Healthy</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:var(--warning)">3</div>
+        <div style="font-size:12px;color:var(--neutral-500)">Degraded</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:var(--error)">3</div>
+        <div style="font-size:12px;color:var(--neutral-500)">Critical</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:32px;">
+      <h3 style="font-size:14px;color:var(--error);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;">Needs Attention</h3>
+      <div class="compact-row">
+        <span class="score md red">42</span>
+        <span class="trend down">&#9660; -12</span>
+        <span class="mono name" style="font-size:14px">cb10-commercial-loans</span>
+        <span style="font-size:12px;color:var(--neutral-500)">Commercial Banking</span>
+        <span class="chip fail">Volume -80%</span>
+      </div>
+      <div class="compact-row">
+        <span class="score md red">38</span>
+        <span class="trend down">&#9660; -8</span>
+        <span class="mono name" style="font-size:14px">cb10-collateral-data</span>
+        <span style="font-size:12px;color:var(--neutral-500)">Commercial Banking</span>
+        <span class="chip fail">Stale 48h</span>
+      </div>
+      <div class="compact-row">
+        <span class="score md red">55</span>
+        <span class="trend down">&#9660; -3</span>
+        <span class="mono name" style="font-size:14px">mk15-trade-confirms</span>
+        <span style="font-size:12px;color:var(--neutral-500)">Markets</span>
+        <span class="chip fail">Ops anomaly</span>
+      </div>
+      <div class="compact-row">
+        <span class="score md yellow">68</span>
+        <span class="trend down">&#9660; -5</span>
+        <span class="mono name" style="font-size:14px">fx22-market-rates</span>
+        <span style="font-size:12px;color:var(--neutral-500)">Markets</span>
+        <span class="chip warn">Stale</span>
+      </div>
+      <div class="compact-row">
+        <span class="score md yellow">74</span>
+        <span class="trend down">&#9660; -4</span>
+        <span class="mono name" style="font-size:14px">ue90-omni-events</span>
+        <span style="font-size:12px;color:var(--neutral-500)">Consumer Banking</span>
+        <span class="chip warn">Volume -22%</span>
+      </div>
+      <div class="compact-row">
+        <span class="score md yellow">71</span>
+        <span class="trend flat">&ndash; 0</span>
+        <span class="mono name" style="font-size:14px">mk15-eod-prices</span>
+        <span style="font-size:12px;color:var(--neutral-500)">Markets</span>
+        <span class="chip warn">Schema drift</span>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size:14px;color:var(--success);margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;">Healthy (41)</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        <div class="compact-row" style="padding:8px 0;">
+          <span class="score" style="font-size:14px;color:var(--success)">96</span>
+          <span class="mono" style="font-size:13px;flex:1">wm05-portfolio-positions</span>
+        </div>
+        <div class="compact-row" style="padding:8px 0;">
+          <span class="score" style="font-size:14px;color:var(--success)">94</span>
+          <span class="mono" style="font-size:13px;flex:1">ue90-omni-transactions</span>
+        </div>
+        <div class="compact-row" style="padding:8px 0;">
+          <span class="score" style="font-size:14px;color:var(--success)">93</span>
+          <span class="mono" style="font-size:13px;flex:1">wm05-client-accounts</span>
+        </div>
+        <div class="compact-row" style="padding:8px 0;">
+          <span class="score" style="font-size:14px;color:var(--success)">91</span>
+          <span class="mono" style="font-size:13px;flex:1">ue90-omni-accounts</span>
+        </div>
+      </div>
+      <div style="text-align:center;padding:12px;font-size:12px;color:var(--neutral-500);">+ 37 more</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(n) {
+    document.querySelectorAll('.mockup').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('d' + n).classList.add('active');
+    document.querySelectorAll('.nav-btn')[n - 1].classList.add('active');
+    window.scrollTo(0, 0);
+  }
+</script>
+</body>
+</html>

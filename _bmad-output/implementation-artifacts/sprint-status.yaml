@@ -1,0 +1,119 @@
+# generated: 2026-04-03T00:00:00
+# last_updated: 2026-04-03T00:00:00
+# project: data-quality-service
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-04-03T00:00:00
+last_updated: 2026-04-03T00:00:00
+project: data-quality-service
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  # Epic 1: Project Foundation & Data Model
+  epic-1: backlog
+  1-1-initialize-project-structure-development-environment: backlog
+  1-2-implement-core-schema-with-temporal-pattern: backlog
+  1-3-implement-metric-storage-schema: backlog
+  1-4-implement-configuration-enrichment-schema: backlog
+  1-5-implement-orchestration-schema: backlog
+  1-6-implement-active-record-views-indexing: backlog
+  1-7-create-test-data-fixtures: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Dataset Discovery & Tier 1 Quality Checks
+  epic-2: backlog
+  2-1-dqcheck-strategy-interface-metric-models-check-factory: backlog
+  2-2-hdfs-path-scanner-with-consumer-zone-implementation: backlog
+  2-3-dataset-reading-avro-parquet-with-backfill-support: backlog
+  2-4-legacy-path-resolution-via-dataset-enrichment: backlog
+  2-5-freshness-check-implementation: backlog
+  2-6-volume-check-implementation: backlog
+  2-7-schema-check-implementation: backlog
+  2-8-ops-check-implementation: backlog
+  2-9-dqs-score-computation: backlog
+  2-10-batch-db-writer-dqsjob-integration: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Orchestration, Run Management & Notifications
+  epic-3: backlog
+  3-1-python-cli-parent-path-configuration: backlog
+  3-2-spark-submit-runner-with-failure-isolation: backlog
+  3-3-orchestration-run-tracking-error-capture: backlog
+  3-4-rerun-management-with-metric-expiration: backlog
+  3-5-summary-email-notification: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Quality Dashboard & Drill-Down Reporting
+  epic-4: backlog
+  4-1-mui-theme-design-system-foundation: backlog
+  4-2-fastapi-summary-lob-api-endpoints: backlog
+  4-3-fastapi-dataset-detail-metrics-api-endpoints: backlog
+  4-4-dataset-search-api-endpoint: backlog
+  4-5-reference-data-resolution-caching: backlog
+  4-6-dqsscorechip-trendsparkline-components: backlog
+  4-7-datasetcard-lob-card-component: backlog
+  4-8-app-layout-with-fixed-header-routing-react-query: backlog
+  4-9-summary-card-grid-view-level-1: backlog
+  4-10-lob-detail-view-level-2: backlog
+  4-11-datasetinfopanel-component: backlog
+  4-12-dataset-detail-view-level-3: backlog
+  4-13-global-dataset-search: backlog
+  4-14-loading-empty-error-states: backlog
+  4-15-accessibility-viewport-polish: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: MCP & LLM Integration
+  epic-5: backlog
+  5-1-fastmcp-tool-registration-failure-query-tool: backlog
+  5-2-mcp-trending-comparison-tools: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Tier 2 Quality Checks (Phase 2)
+  epic-6: backlog
+  6-1-sla-countdown-check: backlog
+  6-2-zero-row-check: backlog
+  6-3-breaking-change-check: backlog
+  6-4-distribution-checks-with-eventattribute-explosion: backlog
+  6-5-timestamp-sanity-check: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Tier 3 Intelligence & Executive Reporting (Phase 3)
+  epic-7: backlog
+  7-1-classification-weighted-alerting-source-system-health: backlog
+  7-2-correlation-inferred-sla-checks: backlog
+  7-3-lineage-orphan-detection-cross-destination-consistency: backlog
+  7-4-executive-reporting-suite: backlog
+  epic-7-retrospective: optional
