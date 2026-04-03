@@ -48,3 +48,28 @@ CREATE TABLE dq_metric_detail (
     CONSTRAINT uq_dq_metric_detail_dq_run_id_check_type_detail_type_expiry_date
         UNIQUE (dq_run_id, check_type, detail_type, expiry_date)
 );
+
+CREATE TABLE check_config (
+    id              SERIAL PRIMARY KEY,
+    dataset_pattern TEXT NOT NULL,
+    check_type      TEXT NOT NULL,
+    enabled         BOOLEAN NOT NULL DEFAULT TRUE,
+    explosion_level INTEGER NOT NULL DEFAULT 0,
+    create_date     TIMESTAMP NOT NULL DEFAULT NOW(),
+    expiry_date     TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59',
+    CONSTRAINT uq_check_config_dataset_pattern_check_type_expiry_date
+        UNIQUE (dataset_pattern, check_type, expiry_date)
+);
+
+CREATE TABLE dataset_enrichment (
+    id              SERIAL PRIMARY KEY,
+    dataset_pattern TEXT NOT NULL,
+    lookup_code     TEXT,
+    custom_weights  JSONB,
+    sla_hours       NUMERIC,
+    explosion_level INTEGER NOT NULL DEFAULT 0,
+    create_date     TIMESTAMP NOT NULL DEFAULT NOW(),
+    expiry_date     TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59',
+    CONSTRAINT uq_dataset_enrichment_dataset_pattern_expiry_date
+        UNIQUE (dataset_pattern, expiry_date)
+);
