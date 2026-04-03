@@ -121,6 +121,11 @@ class CheckFactoryTest {
     }
 
     @Test
+    void registerSchemaCheckImplementationAddsRealCheck() {
+        assertDoesNotThrow(() -> factory.register(new SchemaCheck()));
+    }
+
+    @Test
     void registerThrowsOnNullCheck() {
         assertThrows(IllegalArgumentException.class, () -> factory.register(null));
     }
@@ -165,6 +170,19 @@ class CheckFactoryTest {
         assertEquals(1, result.size());
         assertTrue(result.get(0) instanceof VolumeCheck);
         assertEquals("VOLUME", result.get(0).getCheckType());
+    }
+
+    @Test
+    void getEnabledChecksReturnsRegisteredSchemaCheckImplementation() throws Exception {
+        factory.register(new SchemaCheck());
+        insertConfig("lob=retail/%", "SCHEMA", true);
+
+        List<DqCheck> result = factory.getEnabledChecks(
+                ctx("lob=retail/src_sys_nm=alpha/dataset=sales_daily"), conn);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof SchemaCheck);
+        assertEquals("SCHEMA", result.get(0).getCheckType());
     }
 
     @Test

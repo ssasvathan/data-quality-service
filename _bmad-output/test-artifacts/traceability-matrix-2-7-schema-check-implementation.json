@@ -1,0 +1,218 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-04-03T15:11:06-04:00",
+  "story_id": "2-7-schema-check-implementation",
+  "story_title": "Schema Check Implementation",
+  "requirements": [
+    {
+      "id": "AC1",
+      "description": "Given a dataset DataFrame and a previously stored schema hash in dq_metric_detail When the Schema check executes Then it computes the current schema hash and compares against the stored hash",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.7-UNIT-001",
+          "name": "SchemaCheckTest.executePassesWhenSchemaHashMatchesBaseline",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        },
+        {
+          "id": "2.7-UNIT-002",
+          "name": "SchemaCheckTest.executeFailsWhenBaselineHashDiffersButSchemaJsonMissing",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC2",
+      "description": "And if the schema changed, it writes a MetricDetail with check_type=schema containing the diff (added/removed/changed fields)",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.7-UNIT-003",
+          "name": "SchemaCheckTest.executeWarnsAndListsAddedFieldsWhenDriftIsAddOnly",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        },
+        {
+          "id": "2.7-UNIT-004",
+          "name": "SchemaCheckTest.executeFailsWhenFieldsRemovedOrChanged",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        },
+        {
+          "id": "2.7-UNIT-005",
+          "name": "SchemaCheckTest.executeFailsWhenBaselineHashDiffersButSchemaJsonMissing",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC3",
+      "description": "And it determines pass (no change) or warn/fail (schema drift detected)",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.7-UNIT-006",
+          "name": "SchemaCheckTest.executePassesWhenSchemaHashMatchesBaseline",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        },
+        {
+          "id": "2.7-UNIT-007",
+          "name": "SchemaCheckTest.executeWarnsAndListsAddedFieldsWhenDriftIsAddOnly",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        },
+        {
+          "id": "2.7-UNIT-008",
+          "name": "SchemaCheckTest.executeFailsWhenFieldsRemovedOrChanged",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC4",
+      "description": "Given a dataset with no previous schema hash (first run) When the Schema check executes Then it stores the current schema hash as baseline and passes",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.7-UNIT-009",
+          "name": "SchemaCheckTest.executePassesAndStoresBaselineWhenNoPreviousHash",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC5",
+      "description": "Given a schema change involving only added fields (no removals) When the Schema check executes Then it reports the change with detail showing the new fields",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.7-UNIT-010",
+          "name": "SchemaCheckTest.executeWarnsAndListsAddedFieldsWhenDriftIsAddOnly",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/SchemaCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 5,
+    "fully_covered": 5,
+    "partially_covered": 0,
+    "uncovered": 0,
+    "overall_coverage_percentage": 100,
+    "priority_breakdown": {
+      "P0": {
+        "total": 5,
+        "covered": 5,
+        "percentage": 100
+      },
+      "P1": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage_items": [],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep SchemaCheckTest and CheckFactoryTest in PR-level regression for schema-check changes",
+      "requirements": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC4",
+        "AC5"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "Run full dqs-spark regression before release cut to detect cross-check interactions",
+      "requirements": []
+    },
+    {
+      "priority": "LOW",
+      "action": "Add direct tests for JdbcBaselineProvider query behavior and malformed baseline payload handling",
+      "requirements": []
+    }
+  ]
+}
