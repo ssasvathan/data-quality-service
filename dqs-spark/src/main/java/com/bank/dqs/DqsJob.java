@@ -3,6 +3,7 @@ package com.bank.dqs;
 import com.bank.dqs.model.DatasetContext;
 import com.bank.dqs.reader.DatasetReader;
 import com.bank.dqs.scanner.ConsumerZoneScanner;
+import com.bank.dqs.scanner.EnrichmentResolver;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -11,11 +12,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * DqsJob — Spark job entry point for the Data Quality Service.
@@ -123,11 +129,33 @@ public class DqsJob {
                 .appName("dqs-spark")
                 .getOrCreate();
 
+        // Load DB connection properties from classpath application.properties
+        Properties props = new Properties();
+        try (InputStream is = DqsJob.class.getResourceAsStream("/application.properties")) {
+            if (is != null) {
+                props.load(is);
+            }
+        }
+        String jdbcUrl = props.getProperty("db.url", "jdbc:postgresql://localhost:5432/postgres");
+        String dbUser  = props.getProperty("db.user", "postgres");
+        String dbPass  = props.getProperty("db.password", "localdev");
+
         FileSystem fs = FileSystem.get(spark.sparkContext().hadoopConfiguration());
-        ConsumerZoneScanner scanner = new ConsumerZoneScanner(fs);
         DatasetReader reader = new DatasetReader(spark);
 
-        List<DatasetContext> datasets = scanner.scan(parentPath, partitionDate);
+        List<DatasetContext> datasets;
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, dbUser, dbPass)) {
+            EnrichmentResolver resolver = new EnrichmentResolver(conn);
+            LOG.info("Dataset enrichment resolver enabled");
+            ConsumerZoneScanner scanner = new ConsumerZoneScanner(fs, resolver);
+            datasets = scanner.scan(parentPath, partitionDate);
+        } catch (SQLException e) {
+            LOG.error("Failed to open DB connection for enrichment resolver, falling back to no enrichment: {}",
+                      e.getMessage(), e);
+            ConsumerZoneScanner scanner = new ConsumerZoneScanner(fs);
+            datasets = scanner.scan(parentPath, partitionDate);
+        }
+
         List<DatasetContext> loaded = new ArrayList<>();
         int errorCount = 0;
 

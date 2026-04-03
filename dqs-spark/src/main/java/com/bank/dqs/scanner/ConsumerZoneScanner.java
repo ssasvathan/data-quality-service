@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -38,14 +39,36 @@ public class ConsumerZoneScanner implements PathScanner {
     private final FileSystem fs;
 
     /**
+     * Nullable — when null, enrichment is disabled and raw src_sys_nm values are
+     * used as lookup codes (backward-compatible behavior).
+     */
+    private final EnrichmentResolver enrichmentResolver;
+
+    /**
+     * Single-argument constructor — enrichment disabled.
+     * Equivalent to {@code ConsumerZoneScanner(fs, null)}.
+     *
      * @param fs Hadoop FileSystem to use for path scanning
      * @throws IllegalArgumentException if fs is null
      */
     public ConsumerZoneScanner(FileSystem fs) {
+        this(fs, null);
+    }
+
+    /**
+     * Two-argument constructor — enrichment enabled when resolver is non-null.
+     *
+     * @param fs                 Hadoop FileSystem to use for path scanning
+     * @param enrichmentResolver resolver for mapping raw src_sys_nm values to
+     *                           canonical lookup codes; may be null to disable enrichment
+     * @throws IllegalArgumentException if fs is null
+     */
+    public ConsumerZoneScanner(FileSystem fs, EnrichmentResolver enrichmentResolver) {
         if (fs == null) {
             throw new IllegalArgumentException("FileSystem must not be null");
         }
         this.fs = fs;
+        this.enrichmentResolver = enrichmentResolver;
     }
 
     @Override
@@ -82,7 +105,7 @@ public class ConsumerZoneScanner implements PathScanner {
                 continue;
             }
 
-            String lookupCode = extractLookupCode(dirName);
+            String rawLookupCode = extractLookupCode(dirName);
             String format = detectFormat(subdir.getPath());
 
             if (format == null) {
@@ -91,8 +114,23 @@ public class ConsumerZoneScanner implements PathScanner {
                 continue;
             }
 
-            // datasetName: relative path used for check_config LIKE matching
-            String datasetName = "src_sys_nm=" + lookupCode + "/partition_date=" + dateStr;
+            // Apply enrichment resolution if resolver is configured.
+            // Per-dataset isolation: SQLException is caught, logged at ERROR, and raw code used.
+            // lookupCode gets the enriched value; rawLookupCode is preserved for datasetName.
+            String lookupCode = rawLookupCode;
+            if (enrichmentResolver != null) {
+                try {
+                    lookupCode = enrichmentResolver.resolve(rawLookupCode);
+                } catch (SQLException e) {
+                    LOG.error("Enrichment resolution failed for '{}', using raw value: {}",
+                              rawLookupCode, e.getMessage());
+                    // lookupCode remains rawLookupCode — per-dataset isolation
+                }
+            }
+
+            // datasetName: relative path used for check_config LIKE matching.
+            // Uses rawLookupCode (actual HDFS directory name), NOT the enriched lookup code.
+            String datasetName = "src_sys_nm=" + rawLookupCode + "/partition_date=" + dateStr;
 
             DatasetContext ctx = new DatasetContext(
                     datasetName,
@@ -163,6 +201,8 @@ public class ConsumerZoneScanner implements PathScanner {
 
     @Override
     public String toString() {
-        return "ConsumerZoneScanner{fs=" + fs.getUri() + "}";
+        return "ConsumerZoneScanner{fs=" + fs.getUri()
+                + ", enrichmentResolver=" + (enrichmentResolver != null ? enrichmentResolver : "disabled")
+                + "}";
     }
 }
