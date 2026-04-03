@@ -53,6 +53,19 @@
             <version>2.2.224</version>
             <scope>test</scope>
         </dependency>
+
+        <!--
+            spark-avro: test scope only — NOT bundled in the fat JAR.
+            spark-avro is part of Spark 3.5 on the cluster (provided at runtime).
+            Added as test scope so DatasetReaderTest can write/read Avro fixtures locally
+            without a running Spark cluster.
+        -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-avro_2.13</artifactId>
+            <version>${spark.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
