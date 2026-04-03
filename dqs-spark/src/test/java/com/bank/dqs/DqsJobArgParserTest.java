@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -126,5 +127,47 @@ class DqsJobArgParserTest {
         assertThrows(IllegalArgumentException.class,
                 () -> DqsJob.parseArgs(args),
                 "parseArgs must throw IllegalArgumentException when --date has no value");
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC3 (Story 3-3): --orchestration-run-id parsing
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void parseArgsExtractsOrchestrationRunId() {
+        String[] args = {"--parent-path", "/prod/abc/data", "--orchestration-run-id", "42"};
+
+        DqsJob.DqsJobArgs result = DqsJob.parseArgs(args);
+
+        assertEquals(42L, result.orchestrationRunId(),
+                "orchestrationRunId must equal the long value passed after --orchestration-run-id");
+    }
+
+    @Test
+    void parseArgsDefaultsOrchestrationRunIdToNullWhenAbsent() {
+        String[] args = {"--parent-path", "/prod/abc/data"};
+
+        DqsJob.DqsJobArgs result = DqsJob.parseArgs(args);
+
+        assertNull(result.orchestrationRunId(),
+                "orchestrationRunId must default to null when --orchestration-run-id is absent");
+    }
+
+    @Test
+    void parseArgsThrowsOnInvalidOrchestrationRunIdValue() {
+        String[] args = {"--parent-path", "/prod/abc/data", "--orchestration-run-id", "not-a-number"};
+
+        assertThrows(IllegalArgumentException.class,
+                () -> DqsJob.parseArgs(args),
+                "parseArgs must throw IllegalArgumentException when --orchestration-run-id value is not a valid long");
+    }
+
+    @Test
+    void parseArgsThrowsOnDanglingOrchestrationRunIdFlag() {
+        String[] args = {"--parent-path", "/prod/abc/data", "--orchestration-run-id"};
+
+        assertThrows(IllegalArgumentException.class,
+                () -> DqsJob.parseArgs(args),
+                "parseArgs must throw IllegalArgumentException when --orchestration-run-id has no value");
     }
 }

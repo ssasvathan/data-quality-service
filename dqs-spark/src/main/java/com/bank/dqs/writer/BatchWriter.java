@@ -99,11 +99,11 @@ public class BatchWriter {
      * @return the auto-generated {@code dq_run.id}
      * @throws SQLException if any DB operation fails
      */
-    public long write(DatasetContext ctx, List<DqMetric> metrics) throws SQLException {
+    public long write(DatasetContext ctx, List<DqMetric> metrics, Long orchestrationRunId) throws SQLException {
         boolean previousAutoCommit = conn.getAutoCommit();
         conn.setAutoCommit(false);
         try {
-            long runId = insertDqRun(ctx, metrics);
+            long runId = insertDqRun(ctx, metrics, orchestrationRunId);
             insertMetricNumericBatch(runId, metrics);
             insertMetricDetailBatch(runId, metrics);
             conn.commit();
@@ -129,7 +129,7 @@ public class BatchWriter {
     // dq_run INSERT
     // ---------------------------------------------------------------------------
 
-    private long insertDqRun(DatasetContext ctx, List<DqMetric> metrics) throws SQLException {
+    private long insertDqRun(DatasetContext ctx, List<DqMetric> metrics, Long orchestrationRunId) throws SQLException {
         String checkStatus = deriveCheckStatus(metrics);
         Double dqsScore = deriveDqsScore(metrics);
 
@@ -156,8 +156,11 @@ public class BatchWriter {
             // TODO(story-3-4): increment rerun_number for reruns
             ps.setInt(6, 0);
 
-            // TODO(epic-3): set orchestration_run_id once assigned by orchestrator
-            ps.setNull(7, Types.INTEGER);
+            if (orchestrationRunId != null) {
+                ps.setLong(7, orchestrationRunId);
+            } else {
+                ps.setNull(7, Types.INTEGER);
+            }
 
             ps.setNull(8, Types.VARCHAR);
 

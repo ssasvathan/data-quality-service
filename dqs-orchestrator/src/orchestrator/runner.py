@@ -14,6 +14,7 @@ def run_spark_job(
     partition_date: date,
     spark_config: dict[str, Any],
     datasets: list[str] | None = None,
+    orchestration_run_id: int | None = None,
 ) -> JobResult:
     """Submit a Spark DQ job for the given parent path.
 
@@ -36,6 +37,9 @@ def run_spark_job(
 
     if datasets is not None:
         cmd.extend(["--datasets"] + datasets)
+
+    if orchestration_run_id is not None:
+        cmd.extend(["--orchestration-run-id", str(orchestration_run_id)])
 
     logger.info("spark-submit starting: path=%s date=%s", parent_path, partition_date)
 
@@ -69,6 +73,7 @@ def run_all_paths(
     partition_date: date,
     spark_config: dict[str, Any],
     datasets: list[str] | None = None,
+    orchestration_run_ids: dict[str, int] | None = None,
 ) -> list[JobResult]:
     """Run spark-submit for each parent path with per-path failure isolation.
 
@@ -78,7 +83,8 @@ def run_all_paths(
 
     for path in parent_paths:
         try:
-            job_result = run_spark_job(path, partition_date, spark_config, datasets)
+            orch_id = orchestration_run_ids.get(path) if orchestration_run_ids else None
+            job_result = run_spark_job(path, partition_date, spark_config, datasets, orchestration_run_id=orch_id)
         except Exception as exc:  # noqa: BLE001
             logger.error("Unexpected error running spark job for path=%s: %s", path, exc)
             job_result = JobResult(

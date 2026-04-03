@@ -36,6 +36,10 @@
 
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
+# last traceability: 3-3-orchestration-run-tracking-error-capture -> PASS (2026-04-03)
+# last story update: 3-3-orchestration-run-tracking-error-capture -> done (2026-04-03)
+# last story update: 3-3-orchestration-run-tracking-error-capture -> review (2026-04-03)
+# last story update: 3-3-orchestration-run-tracking-error-capture -> ready-for-dev (2026-04-03)
 # last story update: 3-2-spark-submit-runner-with-failure-isolation -> done (2026-04-03)
 # last traceability: 3-2-spark-submit-runner-with-failure-isolation -> PASS (2026-04-03)
 # last story update: 3-1-python-cli-parent-path-configuration -> done (2026-04-03)
@@ -80,7 +84,7 @@ development_status:
   epic-3: in-progress
   3-1-python-cli-parent-path-configuration: done
   3-2-spark-submit-runner-with-failure-isolation: done
-  3-3-orchestration-run-tracking-error-capture: backlog
+  3-3-orchestration-run-tracking-error-capture: done
   3-4-rerun-management-with-metric-expiration: backlog
   3-5-summary-email-notification: backlog
   epic-3-retrospective: optional

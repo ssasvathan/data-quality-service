@@ -1,9 +1,18 @@
-"""Acceptance tests for orchestrator runner — Story 3-2: Spark-Submit Runner with Failure Isolation.
+"""Acceptance tests for orchestrator runner — Story 3-2 + Story 3-3.
 
-AC Coverage:
+AC Coverage (Story 3-2):
   AC1 — spark-submit invoked once per parent path with correct args
   AC2 — failure isolation: one failed path does not halt others; failure is captured
   AC3 — exit code 0 → path recorded as successful
+
+AC Coverage (Story 3-3 — TDD RED PHASE):
+  AC3 (3-3) — run_spark_job appends --orchestration-run-id to spark-submit command when provided
+  AC3 (3-3) — run_all_paths threads orchestration_run_ids dict through to each run_spark_job call
+
+TDD RED PHASE TESTS (Story 3-3):
+  The tests marked with "# TDD RED" will FAIL until:
+  - run_spark_job() gains an optional orchestration_run_id parameter
+  - run_all_paths() gains an optional orchestration_run_ids dict parameter
 """
 
 from datetime import date
@@ -198,7 +207,116 @@ def test_run_all_paths_passes_datasets_to_each_run_spark_job_call() -> None:
 
     assert mock_run_spark.call_count == 2
     expected_calls = [
-        call("/data/finance/loans", partition_date, SPARK_CONFIG, datasets),
-        call("/data/finance/deposits", partition_date, SPARK_CONFIG, datasets),
+        call("/data/finance/loans", partition_date, SPARK_CONFIG, datasets, orchestration_run_id=None),
+        call("/data/finance/deposits", partition_date, SPARK_CONFIG, datasets, orchestration_run_id=None),
     ]
     mock_run_spark.assert_has_calls(expected_calls)
+
+
+# ---------------------------------------------------------------------------
+# AC3 (Story 3-3): orchestration_run_id passthrough — TDD RED PHASE
+# ---------------------------------------------------------------------------
+
+
+def test_run_spark_job_appends_orchestration_run_id_to_command() -> None:
+    """AC3 (3-3): run_spark_job appends --orchestration-run-id <id> to spark-submit when provided.
+
+    TDD RED: Will fail until run_spark_job() gains orchestration_run_id parameter
+    and appends --orchestration-run-id to the command list.
+    """
+    with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
+        run_spark_job(
+            "/data/finance/loans",
+            date(2026, 3, 25),
+            SPARK_CONFIG,
+            orchestration_run_id=99,
+        )
+
+    cmd = mock_run.call_args[0][0]
+    assert "--orchestration-run-id" in cmd
+    orch_id_idx = cmd.index("--orchestration-run-id")
+    assert cmd[orch_id_idx + 1] == "99"
+
+
+def test_run_spark_job_omits_orchestration_run_id_when_none() -> None:
+    """AC3 (3-3): run_spark_job does NOT append --orchestration-run-id when orchestration_run_id is None.
+
+    TDD RED: Will fail until run_spark_job() gains orchestration_run_id parameter.
+    (Tests that the existing 7 tests still pass — None is the default.)
+    """
+    with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
+        run_spark_job(
+            "/data/finance/loans",
+            date(2026, 3, 25),
+            SPARK_CONFIG,
+            orchestration_run_id=None,
+        )
+
+    cmd = mock_run.call_args[0][0]
+    assert "--orchestration-run-id" not in cmd
+
+
+def test_run_all_paths_threads_orchestration_run_ids_to_each_path() -> None:
+    """AC3 (3-3): run_all_paths looks up orchestration_run_id per path and passes it to run_spark_job.
+
+    TDD RED: Will fail until run_all_paths() gains orchestration_run_ids dict parameter
+    and passes the correct run_id to each run_spark_job call.
+    """
+    paths = ["/data/finance/loans", "/data/finance/deposits"]
+    partition_date = date(2026, 3, 25)
+    orchestration_run_ids = {
+        "/data/finance/loans": 10,
+        "/data/finance/deposits": 11,
+    }
+
+    with patch(
+        "orchestrator.runner.run_spark_job",
+        return_value=JobResult("/data/finance/loans", success=True),
+    ) as mock_run_spark:
+        run_all_paths(
+            paths,
+            partition_date,
+            SPARK_CONFIG,
+            orchestration_run_ids=orchestration_run_ids,
+        )
+
+    assert mock_run_spark.call_count == 2
+    first_call_kwargs = mock_run_spark.call_args_list[0]
+    second_call_kwargs = mock_run_spark.call_args_list[1]
+
+    # Verify orchestration_run_id is passed correctly for each path
+    # run_spark_job(path, partition_date, spark_config, datasets, orchestration_run_id=...)
+    assert first_call_kwargs == call(
+        "/data/finance/loans", partition_date, SPARK_CONFIG, None, orchestration_run_id=10
+    )
+    assert second_call_kwargs == call(
+        "/data/finance/deposits", partition_date, SPARK_CONFIG, None, orchestration_run_id=11
+    )
+
+
+def test_run_all_paths_passes_none_run_id_for_path_not_in_dict() -> None:
+    """AC3 (3-3): run_all_paths passes orchestration_run_id=None for paths not in the dict.
+
+    TDD RED: Will fail until run_all_paths() handles missing keys via dict.get().
+    Ensures paths without a tracked run_id still get spark-submitted with None.
+    """
+    paths = ["/data/finance/loans", "/data/finance/deposits"]
+    partition_date = date(2026, 3, 25)
+    # Only one path in the dict — the other should get None
+    orchestration_run_ids = {"/data/finance/loans": 10}
+
+    with patch(
+        "orchestrator.runner.run_spark_job",
+        return_value=JobResult("/data/finance/loans", success=True),
+    ) as mock_run_spark:
+        run_all_paths(
+            paths,
+            partition_date,
+            SPARK_CONFIG,
+            orchestration_run_ids=orchestration_run_ids,
+        )
+
+    second_call = mock_run_spark.call_args_list[1]
+    assert second_call == call(
+        "/data/finance/deposits", partition_date, SPARK_CONFIG, None, orchestration_run_id=None
+    )

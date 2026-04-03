@@ -6,6 +6,7 @@ from datetime import date, datetime
 
 import yaml
 
+from orchestrator.db import create_orchestration_run, finalize_orchestration_run, get_connection
 from orchestrator.runner import run_all_paths
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,52 @@ def main() -> None:
     spark_config = orchestrator_config.get("spark", {})
     if "spark" not in orchestrator_config:
         logger.warning("'spark' key missing from orchestrator config — using built-in defaults")
-    results = run_all_paths(parent_paths, partition_date, spark_config, args.datasets)
+
+    # Resolve database URL from config or environment
+    db_url = orchestrator_config.get("database", {}).get("url")
+
+    # Create one orchestration run record per parent path (non-fatal on DB error)
+    orchestration_run_ids: dict[str, int] = {}
+    for path in parent_paths:
+        try:
+            conn = get_connection(db_url)
+            try:
+                run_id = create_orchestration_run(conn, path, datetime.now())
+                orchestration_run_ids[path] = run_id
+            finally:
+                conn.close()
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Failed to create orchestration_run for path=%s: %s", path, exc)
+            # Do NOT block spark-submit — continue without run_id
+
+    results = run_all_paths(
+        parent_paths, partition_date, spark_config, args.datasets,
+        orchestration_run_ids=orchestration_run_ids if orchestration_run_ids else None,
+    )
+
+    # Finalize each orchestration run record (non-fatal on DB error)
+    for result in results:
+        run_id = orchestration_run_ids.get(result.parent_path)
+        if run_id is None:
+            continue  # run record was not created — skip finalize
+        failed_count = len(result.failed_datasets)
+        error_summary = result.error_message if not result.success else None
+        try:
+            conn = get_connection(db_url)
+            try:
+                finalize_orchestration_run(
+                    conn,
+                    run_id,
+                    datetime.now(),
+                    total_datasets=None,
+                    passed_datasets=None,
+                    failed_datasets=failed_count,
+                    error_summary=error_summary,
+                )
+            finally:
+                conn.close()
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Failed to finalize orchestration_run id=%d: %s", run_id, exc)
 
     succeeded = sum(1 for r in results if r.success)
     failed = len(results) - succeeded

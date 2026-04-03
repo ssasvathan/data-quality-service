@@ -60,7 +60,7 @@ public class DqsJob {
      * Value holder for parsed CLI arguments.
      * Package-private to allow unit testing via DqsJobArgParserTest.
      */
-    record DqsJobArgs(String parentPath, LocalDate partitionDate) {}
+    record DqsJobArgs(String parentPath, LocalDate partitionDate, Long orchestrationRunId) {}
 
     // ---------------------------------------------------------------------------
     // Argument parsing
@@ -94,6 +94,7 @@ public class DqsJob {
 
         String parentPath = null;
         LocalDate partitionDate = LocalDate.now();
+        Long orchestrationRunId = null;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -117,6 +118,20 @@ public class DqsJob {
                                 "Invalid date format. Expected yyyyMMdd, got: " + dateStr, e);
                     }
                 }
+                case "--orchestration-run-id" -> {
+                    if (i + 1 >= args.length) {
+                        throw new IllegalArgumentException(
+                                "--orchestration-run-id flag requires a value but none was provided");
+                    }
+                    String orchIdStr = args[++i];
+                    try {
+                        orchestrationRunId = Long.parseLong(orchIdStr);
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException(
+                                "Invalid --orchestration-run-id value. Expected a long integer, got: "
+                                        + orchIdStr, e);
+                    }
+                }
             }
         }
 
@@ -124,7 +139,7 @@ public class DqsJob {
             throw new IllegalArgumentException("--parent-path is required");
         }
 
-        return new DqsJobArgs(parentPath, partitionDate);
+        return new DqsJobArgs(parentPath, partitionDate, orchestrationRunId);
     }
 
     /**
@@ -252,7 +267,7 @@ public class DqsJob {
 
                 try (Connection writeConn = DriverManager.getConnection(jdbcUrl, dbUser, dbPass)) {
                     BatchWriter writer = new BatchWriter(writeConn);
-                    long runId = writer.write(ctx, datasetMetrics);
+                    long runId = writer.write(ctx, datasetMetrics, jobArgs.orchestrationRunId());
                     LOG.info("Dataset {} written: dq_run_id={}", ctx.getDatasetName(), runId);
                 }
             } catch (Exception e) {

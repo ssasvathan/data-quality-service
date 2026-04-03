@@ -1,12 +1,24 @@
-"""Acceptance tests for orchestrator CLI — Story 3-1: Python CLI & Parent Path Configuration.
+"""Acceptance tests for orchestrator CLI — Story 3-1 + Story 3-3.
 
-AC Coverage:
+AC Coverage (Story 3-1):
   AC1 — load_parent_paths reads config and identifies parent paths
   AC2 — parse_args parses --date, --datasets, --rerun arguments
   AC3 — missing/malformed config exits with a clear error message
+
+AC Coverage (Story 3-3 — TDD RED PHASE):
+  AC1 (3-3) — main() calls create_orchestration_run before run_all_paths for each parent path
+  AC2 (3-3) — main() calls finalize_orchestration_run after run_all_paths for each JobResult
+  AC2 (3-3) — finalize uses 'completed_with_errors' when JobResult has failures
+  AC3 (3-3) — main() passes orchestration_run_ids dict to run_all_paths
+  Safety    — DB errors in create_orchestration_run do NOT prevent spark-submit
+  Safety    — DB errors in finalize_orchestration_run do NOT cause sys.exit(1)
+
+TDD RED PHASE TESTS (Story 3-3):
+  Tests marked "# TDD RED" will FAIL until cli.py imports and wires DB functions.
+  Mock targets must use 'orchestrator.cli.*' prefix (per Story 3.2 notes).
 """
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from orchestrator.cli import load_parent_paths, main, parse_args
@@ -280,3 +292,238 @@ def test_load_parent_paths_exits_on_entry_missing_path_key(tmp_path: pytest.Temp
         load_parent_paths(str(config_file))
 
     assert exc_info.value.code != 0
+
+
+# ---------------------------------------------------------------------------
+# AC1 (Story 3-3): create_orchestration_run called before run_all_paths — TDD RED
+# ---------------------------------------------------------------------------
+
+
+def _write_minimal_config(tmp_path, parent_paths_file: str) -> str:
+    """Helper: write a minimal orchestrator config that references parent_paths_file."""
+    config_file = tmp_path / "orchestrator.yaml"
+    config_file.write_text(
+        "database:\n"
+        "  url: postgresql://localhost/test\n"
+        "spark:\n"
+        "  submit_path: spark-submit\n"
+        "  master: yarn\n"
+        f"parent_paths_config: {parent_paths_file}\n"
+    )
+    return str(config_file)
+
+
+def test_main_calls_create_orchestration_run_before_run_all_paths(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC1 (3-3): main() calls create_orchestration_run once per parent path before spark-submit.
+
+    TDD RED: Will fail until cli.py imports create_orchestration_run and calls it.
+    Mock target: 'orchestrator.cli.create_orchestration_run' (imported at module level in cli.py).
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+        "  - path: /data/finance/deposits\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_create = MagicMock(side_effect=[1, 2])  # returns run_id 1, 2
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260325"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+             JobResult("/data/finance/deposits", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", mock_create), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"):
+        main()
+
+    # create_orchestration_run must be called once per parent path
+    assert mock_create.call_count == 2
+    call_paths = [c[0][1] for c in mock_create.call_args_list]  # second positional arg = parent_path
+    assert "/data/finance/loans" in call_paths
+    assert "/data/finance/deposits" in call_paths
+
+
+def test_main_passes_orchestration_run_ids_to_run_all_paths(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC3 (3-3): main() passes orchestration_run_ids dict to run_all_paths after creating records.
+
+    TDD RED: Will fail until cli.py wires the orchestration_run_ids mapping into run_all_paths().
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+        "  - path: /data/finance/deposits\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    # create_orchestration_run returns 10, 11 for loans and deposits respectively
+    mock_create = MagicMock(side_effect=[10, 11])
+    mock_run_all = MagicMock(return_value=[
+        JobResult("/data/finance/loans", success=True),
+        JobResult("/data/finance/deposits", success=True),
+    ])
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260325"]), \
+         patch("orchestrator.cli.run_all_paths", mock_run_all), \
+         patch("orchestrator.cli.create_orchestration_run", mock_create), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"):
+        main()
+
+    # run_all_paths must receive orchestration_run_ids kwarg with correct mapping
+    call_kwargs = mock_run_all.call_args[1]  # keyword args
+    assert "orchestration_run_ids" in call_kwargs
+    orch_ids = call_kwargs["orchestration_run_ids"]
+    assert orch_ids["/data/finance/loans"] == 10
+    assert orch_ids["/data/finance/deposits"] == 11
+
+
+# ---------------------------------------------------------------------------
+# AC2 (Story 3-3): finalize_orchestration_run called after run_all_paths — TDD RED
+# ---------------------------------------------------------------------------
+
+
+def test_main_calls_finalize_orchestration_run_after_run_all_paths(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC2 (3-3): main() calls finalize_orchestration_run once per JobResult after spark-submit.
+
+    TDD RED: Will fail until cli.py imports finalize_orchestration_run and calls it.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+        "  - path: /data/finance/deposits\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_finalize = MagicMock()
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260325"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+             JobResult("/data/finance/deposits", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", side_effect=[10, 11]), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run", mock_finalize):
+        main()
+
+    # finalize_orchestration_run called once per result
+    assert mock_finalize.call_count == 2
+
+
+def test_main_finalizes_with_completed_with_errors_on_failure(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """AC2 (3-3): main() calls finalize with failed_datasets > 0 when JobResult has failures.
+
+    TDD RED: Will fail until cli.py passes failed_count from result.failed_datasets to finalize.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_finalize = MagicMock()
+    failed_result = JobResult(
+        "/data/finance/loans",
+        success=False,
+        failed_datasets=["ds-1", "ds-2"],
+        error_message="exit_code=1 stderr=OOM",
+    )
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260325"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[failed_result]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=10), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run", mock_finalize):
+        with pytest.raises(SystemExit):  # sys.exit(1) expected when there are failures
+            main()
+
+    # finalize must be called with failed_datasets=2 (len of failed_datasets list)
+    finalize_call = mock_finalize.call_args
+    assert finalize_call is not None
+    # Check failed_datasets kwarg or positional
+    call_kwargs = finalize_call[1] if finalize_call[1] else {}
+    call_args = finalize_call[0] if finalize_call[0] else ()
+    # failed_datasets should be 2 — either as kwarg or positional
+    failed_count_found = (
+        call_kwargs.get("failed_datasets") == 2
+        or (len(call_args) >= 6 and call_args[5] == 2)  # positional: conn, run_id, end_time, total, passed, failed
+    )
+    assert failed_count_found, (
+        f"Expected failed_datasets=2 in finalize call. Got args={call_args}, kwargs={call_kwargs}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Safety (Story 3-3): DB errors non-fatal — TDD RED
+# ---------------------------------------------------------------------------
+
+
+def test_main_continues_spark_submit_when_create_orchestration_run_raises(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """Safety (3-3): DB failure in create_orchestration_run must NOT prevent spark-submit.
+
+    TDD RED: Will fail until cli.py wraps create_orchestration_run in try/except and continues.
+    Per story: DB errors are non-fatal for orchestration — spark-submit must proceed.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    mock_run_all = MagicMock(return_value=[
+        JobResult("/data/finance/loans", success=True),
+    ])
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260325"]), \
+         patch("orchestrator.cli.run_all_paths", mock_run_all), \
+         patch("orchestrator.cli.create_orchestration_run", side_effect=Exception("DB connection refused")), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run"):
+        # Must NOT raise — DB failure is non-fatal, spark-submit must proceed
+        main()
+
+    # run_all_paths was still called despite DB failure
+    mock_run_all.assert_called_once()
+
+
+def test_main_does_not_exit_1_when_finalize_orchestration_run_raises(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """Safety (3-3): DB failure in finalize_orchestration_run must NOT cause sys.exit(1) beyond spark results.
+
+    TDD RED: Will fail until cli.py wraps finalize_orchestration_run in try/except.
+    Per story: exit code is determined by spark results, not DB finalize errors.
+    """
+    parent_paths_file = tmp_path / "parent_paths.yaml"
+    parent_paths_file.write_text(
+        "parent_paths:\n"
+        "  - path: /data/finance/loans\n"
+    )
+    config_file = _write_minimal_config(tmp_path, str(parent_paths_file))
+
+    with patch("sys.argv", ["orchestrator", "--config", config_file, "--date", "20260325"]), \
+         patch("orchestrator.cli.run_all_paths", return_value=[
+             JobResult("/data/finance/loans", success=True),
+         ]), \
+         patch("orchestrator.cli.create_orchestration_run", return_value=10), \
+         patch("orchestrator.cli.get_connection", return_value=MagicMock()), \
+         patch("orchestrator.cli.finalize_orchestration_run", side_effect=Exception("DB write failed")):
+        # All spark results succeeded → main() must NOT call sys.exit(1) due to finalize failure
+        main()  # If this raises SystemExit(1), the test fails correctly (TDD red)
