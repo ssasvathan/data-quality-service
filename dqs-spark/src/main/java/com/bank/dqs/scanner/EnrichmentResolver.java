@@ -29,13 +29,15 @@ public final class EnrichmentResolver {
     /**
      * SQL using LIKE reversal: candidate LIKE dataset_pattern.
      * The stored dataset_pattern may contain SQL LIKE wildcards (%, _).
+     * ORDER BY id ASC picks the first inserted active match deterministically.
      * LIMIT 1 ensures a single result when multiple patterns match.
      * AND lookup_code IS NOT NULL skips enrichment rows that only carry
      * custom_weights or sla_hours.
      */
     private static final String SQL =
             "SELECT lookup_code FROM v_dataset_enrichment_active "
-            + "WHERE ? LIKE dataset_pattern AND lookup_code IS NOT NULL LIMIT 1";
+            + "WHERE ? LIKE dataset_pattern AND lookup_code IS NOT NULL "
+            + "ORDER BY id ASC LIMIT 1";
 
     private final Connection conn;
 

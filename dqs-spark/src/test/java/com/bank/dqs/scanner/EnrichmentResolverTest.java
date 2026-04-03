@@ -137,8 +137,8 @@ class EnrichmentResolverTest {
 
     /**
      * When multiple patterns could match the same candidate (e.g., exact pattern and
-     * wildcard pattern both match), the resolver returns the first result without crashing.
-     * The SQL uses LIMIT 1 — only one row is returned.
+     * wildcard pattern both match), the resolver returns the first inserted active result.
+     * The SQL uses ORDER BY id ASC LIMIT 1.
      */
     @Test
     void resolveUsesFirstMatchWhenMultiplePatternsMatch() throws Exception {
@@ -151,10 +151,9 @@ class EnrichmentResolverTest {
         // Should not throw — LIMIT 1 handles multiple matches
         String result = resolver.resolve("omni");
 
-        // Result should be one of the two valid codes — not null and not raw
-        org.junit.jupiter.api.Assertions.assertTrue(
-                "UE90".equals(result) || "UE91".equals(result),
-                "Expected one of the enriched codes, got: " + result);
+        // Deterministic "first match": first inserted row (id ASC) wins.
+        assertEquals("UE90", result,
+                "Expected first inserted matching row to be returned");
     }
 
     // ---------------------------------------------------------------------------

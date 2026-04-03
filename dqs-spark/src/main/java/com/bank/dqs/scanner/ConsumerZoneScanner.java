@@ -123,7 +123,7 @@ public class ConsumerZoneScanner implements PathScanner {
                     lookupCode = enrichmentResolver.resolve(rawLookupCode);
                 } catch (SQLException e) {
                     LOG.error("Enrichment resolution failed for '{}', using raw value: {}",
-                              rawLookupCode, e.getMessage());
+                              rawLookupCode, e.getMessage(), e);
                     // lookupCode remains rawLookupCode — per-dataset isolation
                 }
             }

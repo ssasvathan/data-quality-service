@@ -1,6 +1,6 @@
 # Story 2.4: Legacy Path Resolution via Dataset Enrichment
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -71,6 +71,12 @@ so that datasets with non-standard naming are correctly identified for quality t
     - `scanUsesRawLookupCodeWhenNoResolverProvided` — scanner without resolver returns raw `src_sys_nm` value unchanged
     - `scanContinuesAfterEnrichmentSqlException` — enrichment failure does not crash scanner, raw code used
   - [x] Keep existing 19 ConsumerZoneScanner tests passing — zero regressions
+
+### Review Findings
+
+- [x] [Review][Patch] DqsJob did not load component config file, causing custom DB settings to be ignored [`dqs-spark/src/main/java/com/bank/dqs/DqsJob.java:119`]
+- [x] [Review][Patch] Enrichment SQL returned nondeterministic matches when multiple patterns matched [`dqs-spark/src/main/java/com/bank/dqs/scanner/EnrichmentResolver.java:36`]
+- [x] [Review][Patch] Scanner enrichment failure logs dropped stack trace context needed for debugging [`dqs-spark/src/main/java/com/bank/dqs/scanner/ConsumerZoneScanner.java:125`]
 
 ## Dev Notes
 
