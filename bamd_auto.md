@@ -23,7 +23,7 @@ Story selection rules:
 
 Execution model:
 - Act as coordinator only.
-- Spawn exactly one fresh worker/sub-agent per workflow step.
+- YOU MUST Spawn exactly one fresh worker/sub-agent per workflow step.
 - Each step must run in its own fresh context.
 - Do not start the next step until the previous step completes successfully.
 - If any step fails, stop the entire pipeline immediately and report the failure.
