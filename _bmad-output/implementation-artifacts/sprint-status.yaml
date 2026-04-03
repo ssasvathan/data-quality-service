@@ -37,7 +37,7 @@
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
 project: data-quality-service
-# last story update: 1-5-implement-orchestration-schema -> done (2026-04-03)
+# last story update: 1-6-implement-active-record-views-indexing -> done (2026-04-03)
 project_key: NOKEY
 tracking_system: file-system
 story_location: "{project-root}/_bmad-output/implementation-artifacts"
@@ -50,7 +50,7 @@ development_status:
   1-3-implement-metric-storage-schema: done
   1-4-implement-configuration-enrichment-schema: done
   1-5-implement-orchestration-schema: done
-  1-6-implement-active-record-views-indexing: backlog
+  1-6-implement-active-record-views-indexing: done
   1-7-create-test-data-fixtures: backlog
   epic-1-retrospective: optional
 

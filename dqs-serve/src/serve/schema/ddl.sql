@@ -34,7 +34,7 @@ CREATE TABLE dq_run (
         UNIQUE (dataset_name, partition_date, rerun_number, expiry_date)
 );
 
-CREATE INDEX idx_dq_run_dataset_name_partition_date
+CREATE INDEX IF NOT EXISTS idx_dq_run_dataset_name_partition_date
     ON dq_run (dataset_name, partition_date);
 
 ALTER TABLE dq_run
@@ -93,3 +93,18 @@ CREATE TABLE dataset_enrichment (
     CONSTRAINT uq_dataset_enrichment_dataset_pattern_expiry_date
         UNIQUE (dataset_pattern, expiry_date)
 );
+
+CREATE INDEX IF NOT EXISTS idx_dq_metric_numeric_dq_run_id
+    ON dq_metric_numeric (dq_run_id);
+
+CREATE INDEX IF NOT EXISTS idx_dq_metric_detail_dq_run_id
+    ON dq_metric_detail (dq_run_id);
+
+CREATE INDEX IF NOT EXISTS idx_check_config_dataset_pattern
+    ON check_config (dataset_pattern);
+
+CREATE INDEX IF NOT EXISTS idx_dataset_enrichment_dataset_pattern
+    ON dataset_enrichment (dataset_pattern);
+
+CREATE INDEX IF NOT EXISTS idx_dq_orchestration_run_parent_path
+    ON dq_orchestration_run (parent_path);

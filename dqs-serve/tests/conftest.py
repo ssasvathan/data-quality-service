@@ -18,8 +18,9 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:localdev@localhost:5432/postgres",
 )
 
-# Path to the DDL file — relative to this conftest.py
+# Paths to schema files — relative to this conftest.py
 _DDL_PATH = pathlib.Path(__file__).parent.parent / "src" / "serve" / "schema" / "ddl.sql"
+_VIEWS_PATH = pathlib.Path(__file__).parent.parent / "src" / "serve" / "schema" / "views.sql"
 
 
 @pytest.fixture
@@ -35,9 +36,11 @@ def db_conn() -> Generator[psycopg2.extensions.connection, None, None]:
     Each test is wrapped in an explicit transaction that is rolled back on
     teardown, leaving the DB in a clean state regardless of test outcome.
 
-    The DDL (CREATE TABLE statements) is executed inside the same transaction.
-    Postgres allows DDL inside a transaction, and ROLLBACK undoes it, so each
-    test starts with a fresh schema and no residual data.
+    The DDL (CREATE TABLE statements) and views DDL are executed inside the
+    same transaction. Postgres allows DDL inside a transaction, and ROLLBACK
+    undoes it, so each test starts with a fresh schema and no residual data.
+
+    views.sql is executed after ddl.sql because views depend on tables existing.
 
     Requires a running Postgres instance.  Mark tests that use this fixture
     with @pytest.mark.integration so they are excluded from the default suite
@@ -48,15 +51,15 @@ def db_conn() -> Generator[psycopg2.extensions.connection, None, None]:
         @pytest.mark.integration
         def test_something(db_conn):
             cur = db_conn.cursor()
-            ...  # DB is empty, dq_run table exists after DDL ran
+            ...  # DB is empty, dq_run table exists after DDL ran, views exist
     """
     conn = psycopg2.connect(DATABASE_URL)
     conn.autocommit = False
     try:
         with conn.cursor() as cur:
-            ddl_sql = _DDL_PATH.read_text()
-            cur.execute(ddl_sql)
+            cur.execute(_DDL_PATH.read_text())
+            cur.execute(_VIEWS_PATH.read_text())
         yield conn
     finally:
-        conn.rollback()  # Undo DDL + any DML inserted during the test
+        conn.rollback()  # Undo DDL + views DDL + any DML inserted during the test
         conn.close()
