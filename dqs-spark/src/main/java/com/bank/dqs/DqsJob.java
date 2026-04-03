@@ -1,9 +1,18 @@
 package com.bank.dqs;
 
+import com.bank.dqs.checks.CheckFactory;
+import com.bank.dqs.checks.DqCheck;
+import com.bank.dqs.checks.DqsScoreCheck;
+import com.bank.dqs.checks.FreshnessCheck;
+import com.bank.dqs.checks.OpsCheck;
+import com.bank.dqs.checks.SchemaCheck;
+import com.bank.dqs.checks.VolumeCheck;
 import com.bank.dqs.model.DatasetContext;
+import com.bank.dqs.model.DqMetric;
 import com.bank.dqs.reader.DatasetReader;
 import com.bank.dqs.scanner.ConsumerZoneScanner;
 import com.bank.dqs.scanner.EnrichmentResolver;
+import com.bank.dqs.writer.BatchWriter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -220,10 +229,60 @@ public class DqsJob {
             }
         }
 
-        LOG.info("DqsJob completed: {} datasets loaded successfully, {} skipped/errors",
+        LOG.info("Dataset loading complete: {} datasets loaded, {} skipped/errors",
                 loaded.size(), errorCount);
 
-        // TODO (story 2.5-2.9): run DQ checks on each loaded DatasetContext
-        // TODO (story 2.10): write check results to Postgres via BatchWriter
+        // Run DQ checks and write results for each loaded dataset
+        for (DatasetContext ctx : loaded) {
+            List<DqMetric> datasetMetrics = new ArrayList<>();
+            LOG.info("Processing dataset: {}", ctx.getDatasetName());
+            try {
+                // CheckFactory created per-dataset so DqsScoreCheck lambda captures a fresh list
+                CheckFactory datasetFactory = buildCheckFactory(datasetMetrics);
+
+                List<DqCheck> checks;
+                try (Connection checkConn = DriverManager.getConnection(jdbcUrl, dbUser, dbPass)) {
+                    checks = datasetFactory.getEnabledChecks(ctx, checkConn);
+                }
+
+                for (DqCheck check : checks) {
+                    List<DqMetric> checkResult = check.execute(ctx);
+                    datasetMetrics.addAll(checkResult);
+                }
+
+                try (Connection writeConn = DriverManager.getConnection(jdbcUrl, dbUser, dbPass)) {
+                    BatchWriter writer = new BatchWriter(writeConn);
+                    long runId = writer.write(ctx, datasetMetrics);
+                    LOG.info("Dataset {} written: dq_run_id={}", ctx.getDatasetName(), runId);
+                }
+            } catch (Exception e) {
+                LOG.error("Failed to process dataset {}: {}", ctx.getDatasetName(), e.getMessage(), e);
+                errorCount++;
+            }
+        }
+
+        LOG.info("DqsJob completed: {} datasets processed, {} total errors",
+                loaded.size(), errorCount);
+    }
+
+    /**
+     * Builds a per-dataset {@link CheckFactory} with all 5 Tier 1 checks registered.
+     *
+     * <p>{@link DqsScoreCheck} is registered LAST — it reads from the {@code accumulator}
+     * list which is populated by the other four checks during the same dataset's run.
+     *
+     * @param accumulator the mutable list that will hold all metrics from prior checks
+     * @return a freshly constructed {@link CheckFactory} with all checks registered
+     */
+    private static CheckFactory buildCheckFactory(List<DqMetric> accumulator) {
+        CheckFactory f = new CheckFactory();
+        f.register(new FreshnessCheck());
+        f.register(new VolumeCheck());
+        f.register(new SchemaCheck());
+        f.register(new OpsCheck());
+        // DqsScoreCheck is registered last — always runs after Freshness/Volume/Schema/Ops
+        // Lambda captures the accumulator list: reads prior check results for score computation
+        f.register(new DqsScoreCheck(ctx -> accumulator));
+        return f;
     }
 }

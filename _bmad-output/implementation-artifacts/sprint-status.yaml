@@ -37,8 +37,8 @@
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
 project: data-quality-service
-# last story update: 2-9-dqs-score-computation -> done (2026-04-03)
-# last traceability: 2-9-dqs-score-computation -> PASS (2026-04-03)
+# last story update: 2-10-batch-db-writer-dqsjob-integration -> done (2026-04-03)
+# last traceability: 2-10-batch-db-writer-dqsjob-integration -> PASS (2026-04-03)
 # last epic update: epic-1 -> done (2026-04-03)
 project_key: NOKEY
 tracking_system: file-system
@@ -67,7 +67,7 @@ development_status:
   2-7-schema-check-implementation: done
   2-8-ops-check-implementation: done
   2-9-dqs-score-computation: done
-  2-10-batch-db-writer-dqsjob-integration: backlog
+  2-10-batch-db-writer-dqsjob-integration: done
   epic-2-retrospective: optional
 
   # Epic 3: Orchestration, Run Management & Notifications
