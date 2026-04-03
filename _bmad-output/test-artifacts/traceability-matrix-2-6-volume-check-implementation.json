@@ -1,0 +1,194 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-04-03T14:40:11-04:00",
+  "story_id": "2-6-volume-check-implementation",
+  "story_title": "Volume Check Implementation",
+  "requirements": [
+    {
+      "id": "AC1",
+      "description": "Given a dataset DataFrame and historical row counts in dq_metric_numeric When the Volume check executes Then it computes the current row count and the percentage change from the historical mean",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.6-UNIT-001",
+          "name": "VolumeCheckTest.executeComputesRowCountAndPctChangeMetricsWhenBaselinePresent",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        },
+        {
+          "id": "2.6-UNIT-002",
+          "name": "VolumeCheckTest.executeHandlesZeroMeanBaselineWithoutDivisionByZero",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC2",
+      "description": "And it writes a MetricNumeric with check_type=volume, including row_count, pct_change, and stddev metrics",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.6-UNIT-003",
+          "name": "VolumeCheckTest.executeComputesRowCountAndPctChangeMetricsWhenBaselinePresent",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        },
+        {
+          "id": "2.6-UNIT-004",
+          "name": "VolumeCheckTest.getCheckTypeReturnsVolume",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC3",
+      "description": "And it determines pass/warn/fail based on deviation from historical baseline (e.g., >2 stddev = fail)",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.6-UNIT-005",
+          "name": "VolumeCheckTest.executeClassifiesFailWhenDeviationExceedsTwoStdDev",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        },
+        {
+          "id": "2.6-UNIT-006",
+          "name": "VolumeCheckTest.executeClassifiesWarnWhenDeviationExceedsWarnThresholdButNotFailThreshold",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        },
+        {
+          "id": "2.6-UNIT-007",
+          "name": "VolumeCheckTest.executeHandlesZeroMeanBaselineWithoutDivisionByZero",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC4",
+      "description": "Given a dataset with no historical baseline (first run) When the Volume check executes Then it records the current row count as the baseline and passes (no comparison possible)",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.6-UNIT-008",
+          "name": "VolumeCheckTest.executeUsesBaselineInitializationModeWhenHistoryUnavailable",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        },
+        {
+          "id": "2.6-UNIT-009",
+          "name": "VolumeCheckTest.executeKeepsObservedBaselineMetadataWhenHistoryIsInsufficient",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/VolumeCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 4,
+    "fully_covered": 4,
+    "partially_covered": 0,
+    "uncovered": 0,
+    "overall_coverage_percentage": 100,
+    "priority_breakdown": {
+      "P0": {
+        "total": 4,
+        "covered": 4,
+        "percentage": 100
+      },
+      "P1": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage_items": [],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep VolumeCheck and CheckFactory targeted tests in PR-level regression for check logic changes",
+      "requirements": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC4"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "Run full dqs-spark regression before release cut to detect cross-check interactions",
+      "requirements": []
+    },
+    {
+      "priority": "LOW",
+      "action": "Add direct test coverage for JdbcBaselineProvider query contract and expiry sentinel filtering",
+      "requirements": []
+    }
+  ]
+}

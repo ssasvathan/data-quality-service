@@ -116,6 +116,11 @@ class CheckFactoryTest {
     }
 
     @Test
+    void registerVolumeCheckImplementationAddsRealCheck() {
+        assertDoesNotThrow(() -> factory.register(new VolumeCheck()));
+    }
+
+    @Test
     void registerThrowsOnNullCheck() {
         assertThrows(IllegalArgumentException.class, () -> factory.register(null));
     }
@@ -147,6 +152,19 @@ class CheckFactoryTest {
         assertEquals(1, result.size());
         assertTrue(result.get(0) instanceof FreshnessCheck);
         assertEquals("FRESHNESS", result.get(0).getCheckType());
+    }
+
+    @Test
+    void getEnabledChecksReturnsRegisteredVolumeCheckImplementation() throws Exception {
+        factory.register(new VolumeCheck());
+        insertConfig("lob=retail/%", "VOLUME", true);
+
+        List<DqCheck> result = factory.getEnabledChecks(
+                ctx("lob=retail/src_sys_nm=alpha/dataset=sales_daily"), conn);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof VolumeCheck);
+        assertEquals("VOLUME", result.get(0).getCheckType());
     }
 
     @Test
