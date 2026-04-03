@@ -111,6 +111,11 @@ class CheckFactoryTest {
     }
 
     @Test
+    void registerFreshnessCheckImplementationAddsRealCheck() {
+        assertDoesNotThrow(() -> factory.register(new FreshnessCheck()));
+    }
+
+    @Test
     void registerThrowsOnNullCheck() {
         assertThrows(IllegalArgumentException.class, () -> factory.register(null));
     }
@@ -128,6 +133,19 @@ class CheckFactoryTest {
                 ctx("lob=retail/src_sys_nm=alpha/dataset=sales_daily"), conn);
 
         assertEquals(1, result.size());
+        assertEquals("FRESHNESS", result.get(0).getCheckType());
+    }
+
+    @Test
+    void getEnabledChecksReturnsRegisteredFreshnessCheckImplementation() throws Exception {
+        factory.register(new FreshnessCheck());
+        insertConfig("lob=retail/%", "FRESHNESS", true);
+
+        List<DqCheck> result = factory.getEnabledChecks(
+                ctx("lob=retail/src_sys_nm=alpha/dataset=sales_daily"), conn);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof FreshnessCheck);
         assertEquals("FRESHNESS", result.get(0).getCheckType());
     }
 

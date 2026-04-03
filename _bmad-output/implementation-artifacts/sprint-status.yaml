@@ -37,7 +37,7 @@
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
 project: data-quality-service
-# last story update: 2-4-legacy-path-resolution-via-dataset-enrichment -> done (2026-04-03)
+# last story update: 2-5-freshness-check-implementation -> done (2026-04-03)
 # last epic update: epic-1 -> done (2026-04-03)
 project_key: NOKEY
 tracking_system: file-system
@@ -61,7 +61,7 @@ development_status:
   2-2-hdfs-path-scanner-with-consumer-zone-implementation: done
   2-3-dataset-reading-avro-parquet-with-backfill-support: done
   2-4-legacy-path-resolution-via-dataset-enrichment: done
-  2-5-freshness-check-implementation: backlog
+  2-5-freshness-check-implementation: done
   2-6-volume-check-implementation: backlog
   2-7-schema-check-implementation: backlog
   2-8-ops-check-implementation: backlog

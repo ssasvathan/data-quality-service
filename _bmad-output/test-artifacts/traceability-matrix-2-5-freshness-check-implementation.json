@@ -1,0 +1,205 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-04-03T14:15:58-04:00",
+  "story_id": "2-5-freshness-check-implementation",
+  "story_title": "Freshness Check Implementation",
+  "requirements": [
+    {
+      "id": "AC1",
+      "description": "Given a dataset DataFrame with a source_event_timestamp column When the Freshness check executes Then it computes the staleness metric (hours since latest timestamp) and writes a MetricNumeric with check_type=freshness",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.5-UNIT-001",
+          "name": "FreshnessCheckTest.executeComputesHoursSinceUpdateMetricWhenTimestampColumnPresent",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        },
+        {
+          "id": "2.5-UNIT-002",
+          "name": "FreshnessCheckTest.executeClampsNegativeStalenessToZeroForFutureTimestamps",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        },
+        {
+          "id": "2.5-UNIT-003",
+          "name": "FreshnessCheckTest.executeComputesHoursIndependentOfSparkSessionTimezone",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC2",
+      "description": "And it determines pass/warn/fail based on staleness compared to historical baseline",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.5-UNIT-004",
+          "name": "FreshnessCheckTest.executeClassifiesWarnWhenStalenessExceedsWarnThreshold",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        },
+        {
+          "id": "2.5-UNIT-005",
+          "name": "FreshnessCheckTest.executeClassifiesFailWhenStalenessExceedsFailThreshold",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        },
+        {
+          "id": "2.5-UNIT-006",
+          "name": "FreshnessCheckTest.executeUsesBaselineInitializationModeWhenHistoryUnavailable",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        },
+        {
+          "id": "2.5-UNIT-007",
+          "name": "FreshnessCheckTest.baselineStatsFromSamplesIgnoresNullEntries",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC3",
+      "description": "And the check implements the DqCheck interface and is registered in CheckFactory",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit"
+      ],
+      "tests": [
+        {
+          "id": "2.5-UNIT-008",
+          "name": "FreshnessCheckTest.getCheckTypeReturnsFreshness",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        },
+        {
+          "id": "2.5-UNIT-009",
+          "name": "CheckFactoryTest.registerFreshnessCheckImplementationAddsRealCheck",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/CheckFactoryTest.java"
+        },
+        {
+          "id": "2.5-UNIT-010",
+          "name": "CheckFactoryTest.getEnabledChecksReturnsRegisteredFreshnessCheckImplementation",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/CheckFactoryTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    },
+    {
+      "id": "AC4",
+      "description": "Given a dataset with no source_event_timestamp column When the Freshness check executes Then it returns a metric indicating the check could not run, with an appropriate detail message",
+      "priority": "P0",
+      "coverage": "FULL",
+      "test_level": [
+        "unit",
+        "component"
+      ],
+      "tests": [
+        {
+          "id": "2.5-UNIT-011",
+          "name": "FreshnessCheckTest.executeReturnsCheckNotRunDetailWhenTimestampColumnMissing",
+          "file": "dqs-spark/src/test/java/com/bank/dqs/checks/FreshnessCheckTest.java"
+        }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "not_applicable",
+        "auth_coverage": "not_applicable",
+        "error_path_coverage": "covered"
+      },
+      "gaps": []
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 4,
+    "fully_covered": 4,
+    "partially_covered": 0,
+    "uncovered": 0,
+    "overall_coverage_percentage": 100,
+    "priority_breakdown": {
+      "P0": {
+        "total": 4,
+        "covered": 4,
+        "percentage": 100
+      },
+      "P1": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "percentage": 100
+      }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage_items": [],
+    "unit_only_items": [
+      "AC3"
+    ]
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Maintain FreshnessCheck and CheckFactory test set in PR-level regression for Spark check changes",
+      "requirements": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC4"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "Run full dqs-spark regression before release cut to detect cross-check interactions",
+      "requirements": []
+    },
+    {
+      "priority": "LOW",
+      "action": "Optionally add test coverage for no-parseable-timestamp diagnostic branch",
+      "requirements": []
+    }
+  ]
+}
