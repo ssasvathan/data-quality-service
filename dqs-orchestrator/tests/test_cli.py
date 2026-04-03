@@ -235,10 +235,18 @@ def test_main_exits_cleanly_with_valid_config_and_parent_paths(tmp_path: pytest.
         f"parent_paths_config: {parent_paths_config}\n"
     )
 
+    from orchestrator.models import JobResult  # noqa: PLC0415
+
     # main() must not crash on valid inputs
     with patch(
         "sys.argv",
         ["orchestrator", "--config", str(orchestrator_config_with_paths), "--date", "20260325"],
+    ), patch(
+        "orchestrator.cli.run_all_paths",
+        return_value=[
+            JobResult("/data/finance/loans", success=True),
+            JobResult("/data/finance/deposits", success=True),
+        ],
     ):
         # main() should complete without raising an exception or calling sys.exit
         main()
@@ -273,8 +281,13 @@ def test_main_resolves_today_when_date_not_provided(tmp_path: pytest.TempPathFac
         f"parent_paths_config: {parent_paths_file}\n"
     )
 
+    from orchestrator.models import JobResult  # noqa: PLC0415
+
     # main() must not crash even when --date is omitted (defaults to today)
-    with patch("sys.argv", ["orchestrator", "--config", str(orchestrator_config)]):
+    with patch("sys.argv", ["orchestrator", "--config", str(orchestrator_config)]), patch(
+        "orchestrator.cli.run_all_paths",
+        return_value=[JobResult("/data/finance/loans", success=True)],
+    ):
         main()  # Should complete without error
 
 

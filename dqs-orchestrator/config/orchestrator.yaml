@@ -10,6 +10,7 @@ spark:
   deploy_mode: cluster
   driver_memory: 2g
   executor_memory: 4g
+  app_jar: dqs-spark.jar
 
 email:
   smtp_host: localhost

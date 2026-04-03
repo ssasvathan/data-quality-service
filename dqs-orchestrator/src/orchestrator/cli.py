@@ -6,6 +6,8 @@ from datetime import date, datetime
 
 import yaml
 
+from orchestrator.runner import run_all_paths
+
 logger = logging.getLogger(__name__)
 
 
@@ -93,7 +95,18 @@ def main() -> None:
     for path in parent_paths:
         logger.debug("Parent path: %s", path)
 
-    # TODO(story-3-2): invoke runner.run_spark_job() for each parent path
+    spark_config = orchestrator_config.get("spark", {})
+    results = run_all_paths(parent_paths, partition_date, spark_config, args.datasets)
+
+    succeeded = sum(1 for r in results if r.success)
+    failed = len(results) - succeeded
+    logger.info(
+        "DQS Orchestrator complete: total_paths=%d succeeded=%d failed=%d",
+        len(results), succeeded, failed,
+    )
+
+    if failed > 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
