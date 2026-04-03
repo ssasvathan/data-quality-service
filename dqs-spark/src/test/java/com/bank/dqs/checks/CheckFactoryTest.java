@@ -107,6 +107,7 @@ class CheckFactoryTest {
             factory.register(stubCheck("FRESHNESS"));
             factory.register(stubCheck("VOLUME"));
             factory.register(stubCheck("SCHEMA"));
+            factory.register(stubCheck("OPS"));
         });
     }
 
@@ -123,6 +124,11 @@ class CheckFactoryTest {
     @Test
     void registerSchemaCheckImplementationAddsRealCheck() {
         assertDoesNotThrow(() -> factory.register(new SchemaCheck()));
+    }
+
+    @Test
+    void registerOpsCheckImplementationAddsRealCheck() {
+        assertDoesNotThrow(() -> factory.register(new OpsCheck()));
     }
 
     @Test
@@ -183,6 +189,19 @@ class CheckFactoryTest {
         assertEquals(1, result.size());
         assertTrue(result.get(0) instanceof SchemaCheck);
         assertEquals("SCHEMA", result.get(0).getCheckType());
+    }
+
+    @Test
+    void getEnabledChecksReturnsRegisteredOpsCheckImplementation() throws Exception {
+        factory.register(new OpsCheck());
+        insertConfig("lob=retail/%", "OPS", true);
+
+        List<DqCheck> result = factory.getEnabledChecks(
+                ctx("lob=retail/src_sys_nm=alpha/dataset=sales_daily"), conn);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0) instanceof OpsCheck);
+        assertEquals("OPS", result.get(0).getCheckType());
     }
 
     @Test

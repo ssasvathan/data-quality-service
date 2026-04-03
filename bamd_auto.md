@@ -23,11 +23,31 @@ Story selection rules:
 
 Execution model:
 - Act as coordinator only.
-- YOU MUST Spawn exactly one fresh worker/sub-agent per workflow step.
+- Each workflow step MUST be executed using the Agent tool, NOT the Skill tool.
+  - The Agent tool creates an isolated sub-agent with a fresh context window.
+  - The Skill tool runs inline in the parent context and MUST NOT be used for workflow steps.
+- Spawn exactly one fresh Agent per workflow step.
 - Each step must run in its own fresh context.
+- When calling the Agent tool for a BMAD step, include in the sub-agent prompt:
+  - The skill to invoke (using the exact skill name from the mapping below)
+  - The story ID and full file path
+  - Any context the sub-agent needs (it cannot see the parent conversation)
+- Step name to actual skill name mapping:
+  - bmad-bmm-create-story  → skill: bmad-create-story
+  - bmad-tea-testarch-atdd  → skill: bmad-testarch-atdd
+  - bmad-bmm-dev-story     → skill: bmad-dev-story
+  - bmad-bmm-code-review   → skill: bmad-code-review
+  - bmad-tea-testarch-trace → skill: bmad-testarch-trace
 - Do not start the next step until the previous step completes successfully.
 - If any step fails, stop the entire pipeline immediately and report the failure.
 - Do not continue after any such limit error.
+
+Autonomous continuation rule:
+- This is a fully autonomous pipeline. NEVER pause, stop, or wait for user input between steps.
+- After each sub-agent completes successfully, IMMEDIATELY proceed to the next step without any delay or user acknowledgment.
+- The ONLY reasons to stop are: failure, suspected-stuck, or all stories in the epic are done.
+- Do not present intermediate results to the user. Do not wait for the user to say "continue."
+- Treat each Agent tool return as an internal signal to advance, not as a conversation turn boundary.
 
 Worker lifecycle and stuck detection rules:
 - Never send `interrupt=true` to an active worker unless a human explicitly asks for an interrupt.
@@ -45,37 +65,38 @@ Worker lifecycle and stuck detection rules:
 - If no heartbeat is observed for 30 consecutive minutes, mark the step as `suspected-stuck` and stop the pipeline safely (no interrupt).
 - Before marking `suspected-stuck`, send one non-interrupt status ping (`interrupt=false`) asking for concise progress/final state, then wait one more 10-minute window.
 - If a worker session ends unexpectedly but artifacts show the step outcome is complete, run a completion verification checklist and resume from the resulting story status:
-  - `bmad-bmm-create-story`: story markdown exists and story status is `ready-for-dev` (or later).
-  - `bmad-tea-testarch-atdd`: acceptance tests and status transitions expected by workflow are present.
-  - `bmad-bmm-dev-story`: implementation changes and story status advanced to `review` (or later).
-  - `bmad-bmm-code-review`: findings report exists and all Critical/High/Medium/Low findings are resolved in code.
-  - `bmad-tea-testarch-trace`: traceability artifact/decision output exists.
+  - `bmad-create-story`: story markdown exists and story status is `ready-for-dev` (or later).
+  - `bmad-testarch-atdd`: acceptance tests and status transitions expected by workflow are present.
+  - `bmad-dev-story`: implementation changes and story status advanced to `review` (or later).
+  - `bmad-code-review`: findings report exists and all Critical/High/Medium/Low findings are resolved in code.
+  - `bmad-testarch-trace`: traceability artifact/decision output exists.
   - Final gates: both commands passed and pytest skip count is zero.
 - If checklist is incomplete or ambiguous, fail safely and stop. Do not guess.
 
-For each selected story, use status-aware entry and run only the remaining steps:
+For each selected story, use status-aware entry and run only the remaining steps.
+Each step below MUST be executed via the Agent tool (not the Skill tool). The Agent sub-agent prompt must invoke the corresponding skill name shown:
 - If story status is `backlog`, run:
-  1. `bmad-bmm-create-story`
-  2. `bmad-tea-testarch-atdd`
-  3. `bmad-bmm-dev-story`
-  4. `bmad-bmm-code-review`
-  5. `bmad-tea-testarch-trace`
-  6. Final quality gates
+  1. Agent → invoke skill `bmad-create-story`
+  2. Agent → invoke skill `bmad-testarch-atdd`
+  3. Agent → invoke skill `bmad-dev-story`
+  4. Agent → invoke skill `bmad-code-review`
+  5. Agent → invoke skill `bmad-testarch-trace`
+  6. Final quality gates (run directly, not via Agent)
 - If story status is `ready-for-dev`, run:
-  1. `bmad-tea-testarch-atdd`
-  2. `bmad-bmm-dev-story`
-  3. `bmad-bmm-code-review`
-  4. `bmad-tea-testarch-trace`
-  5. Final quality gates
+  1. Agent → invoke skill `bmad-testarch-atdd`
+  2. Agent → invoke skill `bmad-dev-story`
+  3. Agent → invoke skill `bmad-code-review`
+  4. Agent → invoke skill `bmad-testarch-trace`
+  5. Final quality gates (run directly, not via Agent)
 - If story status is `in-progress`, run:
-  1. `bmad-bmm-dev-story`
-  2. `bmad-bmm-code-review`
-  3. `bmad-tea-testarch-trace`
-  4. Final quality gates
+  1. Agent → invoke skill `bmad-dev-story`
+  2. Agent → invoke skill `bmad-code-review`
+  3. Agent → invoke skill `bmad-testarch-trace`
+  4. Final quality gates (run directly, not via Agent)
 - If story status is `review`, run:
-  1. `bmad-bmm-code-review`
-  2. `bmad-tea-testarch-trace`
-  3. Final quality gates
+  1. Agent → invoke skill `bmad-code-review`
+  2. Agent → invoke skill `bmad-testarch-trace`
+  3. Final quality gates (run directly, not via Agent)
 
 Final quality gates:
    `uv run ruff check`
@@ -84,7 +105,7 @@ Final quality gates:
 Important workflow requirements:
 - Run all BMAD steps in full auto / yolo style.
 - Use the exact BMAD names above. Do not substitute shorthand names.
-- In `bmad-bmm-code-review`, fix all findings with severity `Critical`, `High`, `Medium`, and `Low` before continuing.
+- In `bmad-code-review`, fix all findings with severity `Critical`, `High`, `Medium`, and `Low` before continuing.
 - Do not leave unresolved review findings behind.
 - Treat any failed test as failure.
 - Treat any skipped test as failure.
