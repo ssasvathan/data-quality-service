@@ -96,6 +96,8 @@ def main() -> None:
         logger.debug("Parent path: %s", path)
 
     spark_config = orchestrator_config.get("spark", {})
+    if "spark" not in orchestrator_config:
+        logger.warning("'spark' key missing from orchestrator config — using built-in defaults")
     results = run_all_paths(parent_paths, partition_date, spark_config, args.datasets)
 
     succeeded = sum(1 for r in results if r.success)

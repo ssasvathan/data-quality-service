@@ -36,7 +36,8 @@
 
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
-# last story update: 3-2-spark-submit-runner-with-failure-isolation -> review (2026-04-03)
+# last story update: 3-2-spark-submit-runner-with-failure-isolation -> done (2026-04-03)
+# last traceability: 3-2-spark-submit-runner-with-failure-isolation -> PASS (2026-04-03)
 # last story update: 3-1-python-cli-parent-path-configuration -> done (2026-04-03)
 # last traceability: 3-1-python-cli-parent-path-configuration -> PASS (2026-04-03)
 # last epic update: epic-3 -> in-progress (2026-04-03)
@@ -78,7 +79,7 @@ development_status:
   # Epic 3: Orchestration, Run Management & Notifications
   epic-3: in-progress
   3-1-python-cli-parent-path-configuration: done
-  3-2-spark-submit-runner-with-failure-isolation: review
+  3-2-spark-submit-runner-with-failure-isolation: done
   3-3-orchestration-run-tracking-error-capture: backlog
   3-4-rerun-management-with-metric-expiration: backlog
   3-5-summary-email-notification: backlog

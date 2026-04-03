@@ -2,6 +2,7 @@
 import logging
 import subprocess
 from datetime import date
+from typing import Any
 
 from orchestrator.models import JobResult
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 def run_spark_job(
     parent_path: str,
     partition_date: date,
-    spark_config: dict,
+    spark_config: dict[str, Any],
     datasets: list[str] | None = None,
 ) -> JobResult:
     """Submit a Spark DQ job for the given parent path.
@@ -33,12 +34,20 @@ def run_spark_job(
         "--date", partition_date.strftime("%Y%m%d"),
     ]
 
-    if datasets:
+    if datasets is not None:
         cmd.extend(["--datasets"] + datasets)
 
     logger.info("spark-submit starting: path=%s date=%s", parent_path, partition_date)
 
-    result = subprocess.run(cmd, capture_output=True, text=True)  # noqa: S603
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)  # noqa: S603
+    except subprocess.TimeoutExpired:
+        logger.error("spark-submit TIMEOUT: path=%s exceeded 600s", parent_path)
+        return JobResult(
+            parent_path=parent_path,
+            success=False,
+            error_message="spark-submit timed out after 600s",
+        )
 
     if result.returncode == 0:
         logger.info("spark-submit SUCCESS: path=%s", parent_path)
@@ -46,19 +55,19 @@ def run_spark_job(
     else:
         logger.error(
             "spark-submit FAILURE: path=%s exit_code=%d stderr=%s",
-            parent_path, result.returncode, result.stderr,
+            parent_path, result.returncode, result.stderr[:2000],
         )
         return JobResult(
             parent_path=parent_path,
             success=False,
-            error_message=f"exit_code={result.returncode} stderr={result.stderr}",
+            error_message=f"exit_code={result.returncode} stderr={result.stderr[:2000]}",
         )
 
 
 def run_all_paths(
     parent_paths: list[str],
     partition_date: date,
-    spark_config: dict,
+    spark_config: dict[str, Any],
     datasets: list[str] | None = None,
 ) -> list[JobResult]:
     """Run spark-submit for each parent path with per-path failure isolation.

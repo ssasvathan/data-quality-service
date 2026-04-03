@@ -1,9 +1,5 @@
 """Acceptance tests for orchestrator runner — Story 3-2: Spark-Submit Runner with Failure Isolation.
 
-TDD RED PHASE: These tests are written before implementation.
-They WILL FAIL until runner.py implements run_spark_job() and run_all_paths()
-per the story acceptance criteria.
-
 AC Coverage:
   AC1 — spark-submit invoked once per parent path with correct args
   AC2 — failure isolation: one failed path does not halt others; failure is captured
@@ -11,9 +7,7 @@ AC Coverage:
 """
 
 from datetime import date
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock, call, patch
 
 from orchestrator.models import JobResult
 from orchestrator.runner import run_all_paths, run_spark_job
@@ -75,18 +69,28 @@ def test_run_spark_job_returns_failure_on_nonzero_exit() -> None:
 
 
 def test_run_spark_job_builds_correct_command() -> None:
-    """AC1: spark-submit command includes --parent-path, --date, spark flags, and app_jar."""
+    """AC1: spark-submit command includes --parent-path, --date, spark flags, and app_jar.
+
+    Verifies flag adjacency: --parent-path immediately precedes its value,
+    --date immediately precedes its value.
+    """
     with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
         run_spark_job("/data/risk/credit", date(2026, 3, 25), SPARK_CONFIG)
 
     cmd = mock_run.call_args[0][0]
-    assert "--parent-path" in cmd
-    assert "/data/risk/credit" in cmd
-    assert "--date" in cmd
-    assert "20260325" in cmd
+
+    # Verify --parent-path is immediately followed by its value
+    parent_path_idx = cmd.index("--parent-path")
+    assert cmd[parent_path_idx + 1] == "/data/risk/credit"
+
+    # Verify --date is immediately followed by its value
+    date_idx = cmd.index("--date")
+    assert cmd[date_idx + 1] == "20260325"
+
     assert "dqs-spark.jar" in cmd
     assert "--master" in cmd
     assert "yarn" in cmd
+
     # Must NOT use shell=True
     call_kwargs = mock_run.call_args[1] if mock_run.call_args[1] else {}
     assert call_kwargs.get("shell", False) is False
@@ -100,6 +104,15 @@ def test_run_spark_job_passes_datasets_when_provided() -> None:
     cmd = mock_run.call_args[0][0]
     assert "--datasets" in cmd
     assert "ue90-omni" in cmd
+
+
+def test_run_spark_job_passes_datasets_when_empty_list() -> None:
+    """AC1: spark-submit command includes --datasets flag even when datasets is an empty list."""
+    with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
+        run_spark_job("/data/risk/credit", date(2026, 3, 25), SPARK_CONFIG, datasets=[])
+
+    cmd = mock_run.call_args[0][0]
+    assert "--datasets" in cmd
 
 
 # ---------------------------------------------------------------------------
@@ -169,3 +182,23 @@ def test_run_all_paths_continues_after_unexpected_exception() -> None:
     assert results[1].success is False
     assert "Unexpected error" in results[1].error_message
     assert results[2].success is True
+
+
+def test_run_all_paths_passes_datasets_to_each_run_spark_job_call() -> None:
+    """AC1: run_all_paths forwards the datasets argument to every run_spark_job call."""
+    datasets = ["ue90-omni", "another-ds"]
+    paths = ["/data/finance/loans", "/data/finance/deposits"]
+    partition_date = date(2026, 3, 25)
+
+    with patch(
+        "orchestrator.runner.run_spark_job",
+        return_value=JobResult("/data/finance/loans", success=True),
+    ) as mock_run_spark:
+        run_all_paths(paths, partition_date, SPARK_CONFIG, datasets=datasets)
+
+    assert mock_run_spark.call_count == 2
+    expected_calls = [
+        call("/data/finance/loans", partition_date, SPARK_CONFIG, datasets),
+        call("/data/finance/deposits", partition_date, SPARK_CONFIG, datasets),
+    ]
+    mock_run_spark.assert_has_calls(expected_calls)

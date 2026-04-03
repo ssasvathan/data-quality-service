@@ -1,6 +1,6 @@
 # Story 3.2: Spark-Submit Runner with Failure Isolation
 
-Status: review
+Status: done
 
 ## Story
 
