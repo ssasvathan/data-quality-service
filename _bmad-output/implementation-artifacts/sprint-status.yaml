@@ -36,6 +36,9 @@
 
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
+# last story update: 3-1-python-cli-parent-path-configuration -> done (2026-04-03)
+# last traceability: 3-1-python-cli-parent-path-configuration -> PASS (2026-04-03)
+# last epic update: epic-3 -> in-progress (2026-04-03)
 project: data-quality-service
 # last story update: 2-10-batch-db-writer-dqsjob-integration -> done (2026-04-03)
 # last traceability: 2-10-batch-db-writer-dqsjob-integration -> PASS (2026-04-03)
@@ -72,8 +75,8 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Orchestration, Run Management & Notifications
-  epic-3: backlog
-  3-1-python-cli-parent-path-configuration: backlog
+  epic-3: in-progress
+  3-1-python-cli-parent-path-configuration: done
   3-2-spark-submit-runner-with-failure-isolation: backlog
   3-3-orchestration-run-tracking-error-capture: backlog
   3-4-rerun-management-with-metric-expiration: backlog
