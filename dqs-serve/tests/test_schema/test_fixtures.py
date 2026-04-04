@@ -63,6 +63,25 @@ def db_with_fixtures() -> "psycopg2.extensions.connection":
     conn.autocommit = False
     try:
         with conn.cursor() as cur:
+            # Drop all DQS tables in reverse dependency order before creating.
+            # This ensures a clean slate even if a previous test's seeded_client fixture
+            # committed DDL+data (seeded_client commits so its app connection can read data).
+            cur.execute(
+                """
+                DROP TABLE IF EXISTS dq_metric_detail CASCADE;
+                DROP TABLE IF EXISTS dq_metric_numeric CASCADE;
+                DROP TABLE IF EXISTS dq_run CASCADE;
+                DROP TABLE IF EXISTS dq_orchestration_run CASCADE;
+                DROP TABLE IF EXISTS check_config CASCADE;
+                DROP TABLE IF EXISTS dataset_enrichment CASCADE;
+                DROP VIEW IF EXISTS v_dq_run_active CASCADE;
+                DROP VIEW IF EXISTS v_dq_metric_numeric_active CASCADE;
+                DROP VIEW IF EXISTS v_dq_metric_detail_active CASCADE;
+                DROP VIEW IF EXISTS v_check_config_active CASCADE;
+                DROP VIEW IF EXISTS v_dataset_enrichment_active CASCADE;
+                DROP VIEW IF EXISTS v_dq_orchestration_run_active CASCADE;
+                """
+            )
             cur.execute(_DDL_PATH.read_text())
             cur.execute(_VIEWS_PATH.read_text())
             cur.execute(_FIXTURES_PATH.read_text())

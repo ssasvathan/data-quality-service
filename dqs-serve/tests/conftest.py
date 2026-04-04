@@ -6,11 +6,13 @@ Temporal pattern and active-record views need real DB validation.
 import os
 import pathlib
 from typing import Generator
+from unittest.mock import MagicMock
 
 import psycopg2
 import psycopg2.extensions
 import pytest
 from fastapi.testclient import TestClient
+from serve.db.session import get_db
 from serve.main import app
 
 DATABASE_URL = os.getenv(
@@ -21,6 +23,7 @@ DATABASE_URL = os.getenv(
 # Paths to schema files — relative to this conftest.py
 _DDL_PATH = pathlib.Path(__file__).parent.parent / "src" / "serve" / "schema" / "ddl.sql"
 _VIEWS_PATH = pathlib.Path(__file__).parent.parent / "src" / "serve" / "schema" / "views.sql"
+_FIXTURES_PATH = pathlib.Path(__file__).parent.parent / "src" / "serve" / "schema" / "fixtures.sql"
 
 
 @pytest.fixture
@@ -57,9 +60,192 @@ def db_conn() -> Generator[psycopg2.extensions.connection, None, None]:
     conn.autocommit = False
     try:
         with conn.cursor() as cur:
+            # Drop all DQS tables in reverse dependency order to handle FK constraints.
+            # This ensures a clean slate even if a previous seeded_client fixture
+            # committed DDL and data (seeded_client commits so its app connection can read data).
+            cur.execute(
+                """
+                DROP TABLE IF EXISTS dq_metric_detail CASCADE;
+                DROP TABLE IF EXISTS dq_metric_numeric CASCADE;
+                DROP TABLE IF EXISTS dq_run CASCADE;
+                DROP TABLE IF EXISTS dq_orchestration_run CASCADE;
+                DROP TABLE IF EXISTS check_config CASCADE;
+                DROP TABLE IF EXISTS dataset_enrichment CASCADE;
+                DROP VIEW IF EXISTS v_dq_run_active CASCADE;
+                DROP VIEW IF EXISTS v_dq_metric_numeric_active CASCADE;
+                DROP VIEW IF EXISTS v_dq_metric_detail_active CASCADE;
+                DROP VIEW IF EXISTS v_check_config_active CASCADE;
+                DROP VIEW IF EXISTS v_dataset_enrichment_active CASCADE;
+                DROP VIEW IF EXISTS v_dq_orchestration_run_active CASCADE;
+                """
+            )
             cur.execute(_DDL_PATH.read_text())
             cur.execute(_VIEWS_PATH.read_text())
         yield conn
     finally:
         conn.rollback()  # Undo DDL + views DDL + any DML inserted during the test
         conn.close()
+
+
+@pytest.fixture
+def seeded_client(db_conn: psycopg2.extensions.connection) -> Generator[TestClient, None, None]:
+    """TestClient with schema + fixtures.sql seeded into a real Postgres DB.
+
+    Builds on db_conn (which creates DDL + views in a transaction), then seeds
+    fixtures.sql data and commits so the FastAPI app's OWN session can read it.
+
+    The FastAPI app opens its own SQLAlchemy session (via get_db dependency) which
+    is a separate connection from db_conn. The fixtures must be committed before the
+    TestClient request so the app's connection can see the data.
+
+    Teardown: After yield, db_conn fixture rolls back the entire transaction,
+    cleaning up both DDL and DML. Because we committed the fixtures, the rollback
+    will only undo changes made AFTER the commit (i.e., any DML from the test
+    itself if it uses db_conn). The initial seeded data persists until the
+    db_conn teardown calls conn.rollback() which undoes the DDL, effectively
+    dropping all tables.
+
+    Usage::
+
+        @pytest.mark.integration
+        def test_summary_returns_correct_counts(seeded_client):
+            response = seeded_client.get('/api/summary')
+            assert response.status_code == 200
+
+    Note: If a test also needs db_conn directly (e.g., to insert extra rows),
+    it must request BOTH fixtures. seeded_client already wraps db_conn, so
+    requesting seeded_client and db_conn uses the SAME connection object.
+
+    Requires @pytest.mark.integration — excluded from default suite per pyproject.toml.
+    """
+    # Seed fixture data into the transaction that db_conn started.
+    with db_conn.cursor() as cur:
+        cur.execute(_FIXTURES_PATH.read_text())
+    # Commit so the FastAPI app's separate DB connection can read the seeded data.
+    db_conn.commit()
+
+    yield TestClient(app)
+
+    # db_conn fixture handles final rollback/cleanup in its own teardown.
+
+
+# ---------------------------------------------------------------------------
+# Mock DB dependency override for unit tests (non-integration)
+# ---------------------------------------------------------------------------
+
+
+def _make_mock_db_session() -> MagicMock:
+    """Return a MagicMock that mimics a SQLAlchemy Session with context-aware results.
+
+    Provides a MagicMock session where db.execute(...).mappings().all() returns:
+      - Empty list when the LOB parameter is not a known test LOB (triggers 404 for NONEXISTENT)
+      - A single fake dataset row when LOB_RETAIL is queried (confirms route is registered)
+      - Empty list for all other queries (summary totals = 0, lobs list = [], etc.)
+
+    This satisfies route handlers across unit tests:
+      - GET /api/summary → SummaryResponse with one LOB (200)
+      - GET /api/lobs → list with one LOB (200)
+      - GET /api/lobs/LOB_RETAIL/datasets → first execute returns one row → 200 (route registered)
+      - GET /api/lobs/NONEXISTENT/datasets → first execute returns empty → 404 (LOB not found)
+
+    Query dispatch logic (by param keys present):
+      - No params          → _LATEST_PER_DATASET_SQL or _LOBS_LATEST_SQL → fake LOB row
+      - days_back only     → _ALL_LOBS_TREND_BATCH_SQL (summary trend) → fake trend row with lookup_code
+      - lob_id only        → _DATASET_LATEST_FOR_LOB_SQL
+          - NONEXISTENT    → empty (triggers 404)
+          - other lob_id   → fake dataset row (run_id key)
+      - dataset_names      → _DATASET_TREND_BATCH_SQL → empty (no sparkline in unit tests)
+      - run_ids            → _METRIC_CHECK_TYPES_BATCH_SQL → empty (no metrics in unit tests)
+    """
+    import datetime  # noqa: PLC0415
+
+    # run_id is the PK of dq_run (renamed from dataset_id to avoid naming confusion)
+    _FAKE_DATASET_ROW = {
+        "run_id": 1,
+        "dataset_name": "lob=retail/src_sys_nm=alpha/dataset=sales_daily",
+        "dqs_score": 98.50,
+        "check_status": "PASS",
+        "partition_date": datetime.date(2026, 4, 2),
+    }
+
+    _FAKE_LOB_ROW = {
+        "dataset_name": "lob=retail/src_sys_nm=alpha/dataset=sales_daily",
+        "lookup_code": "LOB_RETAIL",
+        "check_status": "PASS",
+        "dqs_score": 98.50,
+        "partition_date": datetime.date(2026, 4, 2),
+    }
+
+    _FAKE_SUMMARY_TREND_ROW = {
+        "lookup_code": "LOB_RETAIL",
+        "day": datetime.date(2026, 4, 2),
+        "avg_score": 98.50,
+    }
+
+    def _execute_side_effect(query: object, params: dict | None = None) -> MagicMock:
+        """Return mock results based on query parameters.
+
+        Distinguishes query types by inspecting param keys:
+          - No params         → latest-per-dataset (summary) or lobs list → fake LOB row
+          - days_back only    → batched summary LOB trend → fake trend row with lookup_code
+          - lob_id only       → dataset-latest-for-LOB
+              - NONEXISTENT   → empty (triggers 404)
+              - other lob_id  → fake dataset row (run_id key)
+          - dataset_names     → batched dataset trend → empty (no sparkline in unit tests)
+          - run_ids           → batched metric check types → empty (no metrics in unit tests)
+        """
+        result = MagicMock()
+        rows: list = []
+
+        if params and isinstance(params, dict):
+            run_ids = params.get("run_ids")
+            dataset_names = params.get("dataset_names")
+            days_back = params.get("days_back")
+            lob_id = params.get("lob_id", "")
+
+            if run_ids is not None:
+                # Batched metric check types query — empty (no per-check metrics in unit tests)
+                rows = []
+            elif dataset_names is not None:
+                # Batched dataset trend query — empty (no sparkline data in unit tests)
+                rows = []
+            elif days_back is not None:
+                # Batched summary LOB trend query — return a fake trend row with lookup_code
+                rows = [_FAKE_SUMMARY_TREND_ROW]
+            elif lob_id and lob_id != "NONEXISTENT":
+                # Dataset latest-for-LOB query for a known LOB
+                rows = [_FAKE_DATASET_ROW]
+            # else: NONEXISTENT lob → empty list (triggers 404)
+        elif params is None:
+            # No params — lobs list query or summary latest-per-dataset query.
+            # Return one fake LOB row so snake_case key validation tests have data.
+            rows = [_FAKE_LOB_ROW]
+
+        result.mappings.return_value.all.return_value = rows
+        return result
+
+    mock_session = MagicMock()
+    mock_session.execute.side_effect = _execute_side_effect
+    return mock_session
+
+
+@pytest.fixture(autouse=True)
+def override_db_dependency(request: pytest.FixtureRequest) -> Generator[None, None, None]:
+    """Auto-use fixture: override get_db with a mock for unit tests.
+
+    For tests NOT marked @pytest.mark.integration, replace get_db with a mock
+    that returns empty results so route tests pass without a real Postgres instance.
+
+    For integration tests, remove the override so the real get_db is used.
+    This fixture is harmless for tests that don't use the FastAPI TestClient.
+    """
+    if request.node.get_closest_marker("integration") is None:
+        # Unit test — inject mock DB session
+        mock_session = _make_mock_db_session()
+        app.dependency_overrides[get_db] = lambda: mock_session
+        yield
+        app.dependency_overrides.pop(get_db, None)
+    else:
+        # Integration test — use real DB, no override
+        app.dependency_overrides.pop(get_db, None)
+        yield
