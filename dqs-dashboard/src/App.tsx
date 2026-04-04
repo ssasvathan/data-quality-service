@@ -6,6 +6,7 @@ import AppLayout from './layouts/AppLayout'
 import SummaryPage from './pages/SummaryPage'
 import LobDetailPage from './pages/LobDetailPage'
 import DatasetDetailPage from './pages/DatasetDetailPage'
+import ExecReportPage from './pages/ExecReportPage'
 import { TimeRangeProvider } from './context/TimeRangeContext'
 
 const queryClient = new QueryClient()
@@ -23,6 +24,7 @@ function App() {
                 <Route path="/summary" element={<SummaryPage />} />
                 <Route path="/lobs/:lobId" element={<LobDetailPage />} />
                 <Route path="/datasets/:datasetId" element={<DatasetDetailPage />} />
+                <Route path="/exec" element={<ExecReportPage />} />
               </Routes>
             </AppLayout>
           </TimeRangeProvider>

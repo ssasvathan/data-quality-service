@@ -174,5 +174,47 @@ export interface SearchResponse {
   results: SearchResult[]
 }
 
+/**
+ * LobMonthlyScore — one LOB × month cell in the executive LOB monthly scorecard.
+ * Returned inside ExecutiveReportResponse.lob_monthly_scores.
+ */
+export interface LobMonthlyScore {
+  lob_id: string
+  month: string
+  avg_score: number | null
+}
+
+/**
+ * SourceSystemScore — per-source-system accountability row.
+ * Returned inside ExecutiveReportResponse.source_system_scores.
+ */
+export interface SourceSystemScore {
+  src_sys_nm: string
+  dataset_count: number
+  avg_score: number | null
+  healthy_count: number
+  critical_count: number
+}
+
+/**
+ * LobImprovementSummary — current vs. baseline improvement delta per LOB.
+ * Returned inside ExecutiveReportResponse.improvement_summary.
+ */
+export interface LobImprovementSummary {
+  lob_id: string
+  baseline_score: number | null
+  current_score: number | null
+  delta: number | null
+}
+
+/**
+ * ExecutiveReportResponse — shape returned by GET /api/executive/report.
+ */
+export interface ExecutiveReportResponse {
+  lob_monthly_scores: LobMonthlyScore[]
+  source_system_scores: SourceSystemScore[]
+  improvement_summary: LobImprovementSummary[]
+}
+
 // Re-export TimeRange type for convenience
 export type { TimeRange } from '../context/TimeRangeContext'

@@ -418,8 +418,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         <Toolbar>
           {/* AppBreadcrumbs renders MUI Breadcrumbs as <nav aria-label="breadcrumb"> (AC5) */}
-          <Box sx={{ flexGrow: 1 }}>
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
             <AppBreadcrumbs />
+            <Link
+              component={RouterLink}
+              to="/exec"
+              underline="hover"
+              color="inherit"
+              sx={{ whiteSpace: 'nowrap', fontSize: '0.875rem' }}
+            >
+              Executive Report
+            </Link>
           </Box>
 
           {/* AC5: LastUpdatedIndicator — amber when stale (>=24h), gray when fresh */}

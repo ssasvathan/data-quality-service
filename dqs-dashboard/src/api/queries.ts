@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from './client'
-import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail, DatasetMetricsResponse, DatasetTrendResponse, SearchResponse } from './types'
+import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail, DatasetMetricsResponse, DatasetTrendResponse, SearchResponse, ExecutiveReportResponse } from './types'
 import type { TimeRange } from '../context/TimeRangeContext'
 
 export function useLobs(timeRange: TimeRange = '7d') {
@@ -90,6 +90,18 @@ export function useDatasetTrend(datasetId: string | undefined, timeRange: TimeRa
     queryKey: ['datasetTrend', datasetId, timeRange],
     queryFn: () => apiFetch<DatasetTrendResponse>(`/datasets/${datasetId}/trend?time_range=${timeRange}`),
     enabled: !!datasetId,
+  })
+}
+
+/**
+ * useExecutiveReport — fetches GET /api/executive/report.
+ * Returns cross-LOB monthly scores, source system accountability, and improvement summary.
+ * Not time-range parameterized — executive report uses fixed 3-month window server-side.
+ */
+export function useExecutiveReport() {
+  return useQuery<ExecutiveReportResponse>({
+    queryKey: ['executiveReport'],
+    queryFn: () => apiFetch<ExecutiveReportResponse>('/executive/report'),
   })
 }
 
