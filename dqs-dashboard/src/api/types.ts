@@ -48,10 +48,34 @@ export interface SummaryResponse {
 export interface DatasetSummary {
   dataset_id: number
   dataset_name: string
-  lob_id: number
+  lob_id: string
   dqs_score: number
   partition_date: string
   last_run_date: string
+}
+
+/**
+ * DatasetInLob — shape returned per-dataset inside GET /api/lobs/{lob_id}/datasets.
+ * freshness_status, volume_status, schema_status are null if the check was not run.
+ */
+export interface DatasetInLob {
+  dataset_id: number
+  dataset_name: string
+  dqs_score: number | null
+  check_status: 'PASS' | 'WARN' | 'FAIL' | null
+  partition_date: string
+  trend: number[]
+  freshness_status: 'PASS' | 'WARN' | 'FAIL' | null
+  volume_status: 'PASS' | 'WARN' | 'FAIL' | null
+  schema_status: 'PASS' | 'WARN' | 'FAIL' | null
+}
+
+/**
+ * LobDatasetsResponse — shape returned by GET /api/lobs/{lob_id}/datasets.
+ */
+export interface LobDatasetsResponse {
+  lob_id: string
+  datasets: DatasetInLob[]
 }
 
 // Re-export TimeRange type for convenience

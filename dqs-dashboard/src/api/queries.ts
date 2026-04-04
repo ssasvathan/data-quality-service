@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from './client'
-import type { LobDetail, DatasetSummary, SummaryResponse } from './types'
+import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse } from './types'
 import type { TimeRange } from '../context/TimeRangeContext'
 
 export function useLobs(timeRange: TimeRange = '7d') {
@@ -15,6 +15,12 @@ export function useLobs(timeRange: TimeRange = '7d') {
   })
 }
 
+/**
+ * useDatasets — legacy placeholder hook for dataset listing.
+ * @deprecated Not used by any current page. Prefer useLobDatasets for
+ * LOB-scoped dataset queries. This hook is retained for backward compatibility
+ * but should be removed once confirmed fully unused.
+ */
 export function useDatasets(lobId?: number, timeRange: TimeRange = '7d') {
   return useQuery<DatasetSummary[]>({
     queryKey: ['datasets', lobId, timeRange],
@@ -36,5 +42,17 @@ export function useSummary() {
   return useQuery<SummaryResponse>({
     queryKey: ['summary'],
     queryFn: () => apiFetch<SummaryResponse>('/summary'),
+  })
+}
+
+/**
+ * useLobDatasets — fetches GET /api/lobs/{lobId}/datasets?time_range={timeRange}.
+ * Query key includes both lobId and timeRange so time-range changes trigger refetch.
+ */
+export function useLobDatasets(lobId: string, timeRange: TimeRange = '7d') {
+  return useQuery<LobDatasetsResponse>({
+    queryKey: ['lobDatasets', lobId, timeRange],
+    queryFn: () => apiFetch<LobDatasetsResponse>(`/lobs/${lobId}/datasets?time_range=${timeRange}`),
+    enabled: !!lobId,
   })
 }
