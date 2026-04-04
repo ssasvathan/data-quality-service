@@ -6,6 +6,7 @@ import AppLayout from './layouts/AppLayout'
 import SummaryPage from './pages/SummaryPage'
 import LobDetailPage from './pages/LobDetailPage'
 import DatasetDetailPage from './pages/DatasetDetailPage'
+import { TimeRangeProvider } from './context/TimeRangeContext'
 
 const queryClient = new QueryClient()
 
@@ -15,13 +16,16 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <BrowserRouter>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<SummaryPage />} />
-              <Route path="/lobs/:lobId" element={<LobDetailPage />} />
-              <Route path="/datasets/:datasetId" element={<DatasetDetailPage />} />
-            </Routes>
-          </AppLayout>
+          <TimeRangeProvider>
+            <AppLayout>
+              <Routes>
+                <Route path="/" element={<SummaryPage />} />
+                <Route path="/summary" element={<SummaryPage />} />
+                <Route path="/lobs/:lobId" element={<LobDetailPage />} />
+                <Route path="/datasets/:datasetId" element={<DatasetDetailPage />} />
+              </Routes>
+            </AppLayout>
+          </TimeRangeProvider>
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>

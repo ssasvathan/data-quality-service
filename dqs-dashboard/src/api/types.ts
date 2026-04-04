@@ -23,3 +23,6 @@ export interface DatasetSummary {
   partition_date: string
   last_run_date: string
 }
+
+// Re-export TimeRange type for convenience
+export type { TimeRange } from '../context/TimeRangeContext'
