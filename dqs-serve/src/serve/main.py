@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from .routes import datasets as datasets_router
 from .routes import lobs as lobs_router
+from .routes import search as search_router
 from .routes import summary as summary_router
 
 logger = logging.getLogger(__name__)
@@ -56,3 +57,4 @@ def health_check() -> dict[str, str]:
 app.include_router(summary_router.router, prefix="/api")
 app.include_router(lobs_router.router, prefix="/api")
 app.include_router(datasets_router.router, prefix="/api")
+app.include_router(search_router.router, prefix="/api")

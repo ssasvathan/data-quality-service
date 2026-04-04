@@ -151,9 +151,14 @@ def _make_mock_db_session() -> MagicMock:
       - GET /api/datasets/9999 → dataset_id=9999 → empty → 404 (unknown)
       - GET /api/datasets/9/metrics → dataset_id=9 → first call returns run row, metric calls empty
       - GET /api/datasets/9/trend → dataset_id=9 → first call returns run row, trend call returns point
+      - GET /api/search?q=sales → q='sales' → fake search result row → 200
+      - GET /api/search?q=ZZZNOMATCH → q='ZZZNOMATCH' → empty → 200 with results=[]
 
     Query dispatch logic (by param keys present):
       - No params          → _LATEST_PER_DATASET_SQL or _LOBS_LATEST_SQL → fake LOB row
+      - q (search param)   → _SEARCH_SQL (checked first, distinct param key)
+          - q in (sales, alpha, retail) → fake search result row
+          - other q values              → empty list (no-match → results=[])
       - days_back only     → _ALL_LOBS_TREND_BATCH_SQL (summary trend) → fake trend row with lookup_code
       - lob_id only        → _DATASET_LATEST_FOR_LOB_SQL
           - NONEXISTENT    → empty (triggers 404)
@@ -216,11 +221,24 @@ def _make_mock_db_session() -> MagicMock:
         "parent_path": "lob=retail/src_sys_nm=alpha",
     }
 
+    # Fake search result row for GET /api/search?q=<known_query>
+    # id=9 matches _FAKE_DATASET_DETAIL_RUN_ROW sentinel for consistency
+    _FAKE_SEARCH_RESULT_ROW = {
+        "id": 9,
+        "dataset_name": "lob=retail/src_sys_nm=alpha/dataset=sales_daily",
+        "lookup_code": "LOB_RETAIL",
+        "dqs_score": 98.50,
+        "check_status": "PASS",
+    }
+
     def _execute_side_effect(query: object, params: dict | None = None) -> MagicMock:
         """Return mock results based on query parameters.
 
         Distinguishes query types by inspecting param keys:
           - No params         → latest-per-dataset (summary) or lobs list → fake LOB row
+          - q (search param)  → search query (checked first — distinct param key)
+              - q in (sales, alpha, retail) → fake search result row
+              - other q values              → empty list (no-match → results=[])
           - days_back only    → batched summary LOB trend → fake trend row with lookup_code
           - lob_id only       → dataset-latest-for-LOB
               - NONEXISTENT   → empty (triggers 404)
@@ -237,6 +255,7 @@ def _make_mock_db_session() -> MagicMock:
         rows: list = []
 
         if params and isinstance(params, dict):
+            q = params.get("q")
             run_ids = params.get("run_ids")
             dataset_names = params.get("dataset_names")
             days_back = params.get("days_back")
@@ -245,7 +264,14 @@ def _make_mock_db_session() -> MagicMock:
             dataset_name = params.get("dataset_name")
             orchestration_run_id = params.get("orchestration_run_id")
 
-            if run_ids is not None:
+            if q is not None:
+                # Search query — return fake search result for known queries, empty for no-match
+                # q_prefix may also be present (used in CASE sort expression) — handled here too
+                if q.lower() in ("sales", "alpha", "retail"):
+                    rows = [_FAKE_SEARCH_RESULT_ROW]
+                else:
+                    rows = []  # no match → empty results array (AC3: not a 4xx error)
+            elif run_ids is not None:
                 # Batched metric check types query — empty (no per-check metrics in unit tests)
                 rows = []
             elif dataset_names is not None:
