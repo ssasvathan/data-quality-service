@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from .db.engine import SessionLocal
+from .mcp.tools import mcp
 from .routes import datasets as datasets_router
 from .routes import lobs as lobs_router
 from .routes import search as search_router
@@ -93,3 +94,9 @@ app.include_router(summary_router.router, prefix="/api")
 app.include_router(lobs_router.router, prefix="/api")
 app.include_router(datasets_router.router, prefix="/api")
 app.include_router(search_router.router, prefix="/api")
+
+# ---------------------------------------------------------------------------
+# MCP layer — additive mount, does not modify existing routes
+# ---------------------------------------------------------------------------
+
+app.mount("/mcp", mcp.http_app(path="/"))

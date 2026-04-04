@@ -3,6 +3,8 @@
 # last retrospective: epic-4-retrospective -> done (2026-04-04)
 # last epic update: epic-4 -> done (2026-04-04)
 # last epic update: epic-5 -> in-progress (2026-04-04)
+# last traceability: 5-1-fastmcp-tool-registration-failure-query-tool -> PASS (2026-04-04)
+# last story update: 5-1-fastmcp-tool-registration-failure-query-tool -> done (2026-04-04)
 # last traceability: 4-14-loading-empty-error-states -> PASS (2026-04-03)
 # last story update: 4-9-summary-card-grid-view-level-1 -> done (2026-04-03)
 # last story update: 4-9-summary-card-grid-view-level-1 -> ready-for-dev (2026-04-03)
@@ -49,6 +51,9 @@
 
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-04
+# last story update: 5-1-fastmcp-tool-registration-failure-query-tool -> done (2026-04-04)
+# last story update: 5-1-fastmcp-tool-registration-failure-query-tool -> review (2026-04-04)
+# last story update: 5-1-fastmcp-tool-registration-failure-query-tool -> ready-for-dev (2026-04-04)
 # last story update: 4-15-accessibility-viewport-polish -> done (2026-04-03)
 # last atdd: 4-15-accessibility-viewport-polish -> 24 failing tests generated (2026-04-03)
 # last story update: 4-15-accessibility-viewport-polish -> ready-for-dev (2026-04-03)
@@ -178,7 +183,7 @@ development_status:
 
   # Epic 5: MCP & LLM Integration
   epic-5: in-progress
-  5-1-fastmcp-tool-registration-failure-query-tool: backlog
+  5-1-fastmcp-tool-registration-failure-query-tool: done
   5-2-mcp-trending-comparison-tools: backlog
   epic-5-retrospective: optional
 
