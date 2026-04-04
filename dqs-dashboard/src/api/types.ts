@@ -78,5 +78,28 @@ export interface LobDatasetsResponse {
   datasets: DatasetInLob[]
 }
 
+/**
+ * DatasetDetail — shape returned by GET /api/datasets/{dataset_id}.
+ * Used by useDatasetDetail() for the dataset detail endpoint.
+ */
+export interface DatasetDetail {
+  dataset_id: number
+  dataset_name: string
+  lob_id: string
+  source_system: string
+  format: string
+  hdfs_path: string
+  parent_path: string | null
+  partition_date: string
+  row_count: number | null
+  previous_row_count: number | null
+  last_updated: string
+  run_id: number
+  rerun_number: number
+  dqs_score: number | null
+  check_status: 'PASS' | 'WARN' | 'FAIL' | null
+  error_message: string | null
+}
+
 // Re-export TimeRange type for convenience
 export type { TimeRange } from '../context/TimeRangeContext'

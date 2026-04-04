@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from './client'
-import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse } from './types'
+import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail } from './types'
 import type { TimeRange } from '../context/TimeRangeContext'
 
 export function useLobs(timeRange: TimeRange = '7d') {
@@ -54,5 +54,17 @@ export function useLobDatasets(lobId: string, timeRange: TimeRange = '7d') {
     queryKey: ['lobDatasets', lobId, timeRange],
     queryFn: () => apiFetch<LobDatasetsResponse>(`/lobs/${lobId}/datasets?time_range=${timeRange}`),
     enabled: !!lobId,
+  })
+}
+
+/**
+ * useDatasetDetail — fetches GET /api/datasets/{datasetId}.
+ * NOT time-range parameterized — dataset detail is a point-in-time record.
+ */
+export function useDatasetDetail(datasetId: string | undefined) {
+  return useQuery<DatasetDetail>({
+    queryKey: ['datasetDetail', datasetId],
+    queryFn: () => apiFetch<DatasetDetail>(`/datasets/${datasetId}`),
+    enabled: !!datasetId,
   })
 }
