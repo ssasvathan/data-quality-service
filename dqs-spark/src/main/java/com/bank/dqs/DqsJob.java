@@ -2,6 +2,7 @@ package com.bank.dqs;
 
 import com.bank.dqs.checks.BreakingChangeCheck;
 import com.bank.dqs.checks.CheckFactory;
+import com.bank.dqs.checks.ClassificationWeightedCheck;
 import com.bank.dqs.checks.DistributionCheck;
 import com.bank.dqs.checks.DqCheck;
 import com.bank.dqs.checks.DqsScoreCheck;
@@ -9,6 +10,7 @@ import com.bank.dqs.checks.FreshnessCheck;
 import com.bank.dqs.checks.OpsCheck;
 import com.bank.dqs.checks.SchemaCheck;
 import com.bank.dqs.checks.SlaCountdownCheck;
+import com.bank.dqs.checks.SourceSystemHealthCheck;
 import com.bank.dqs.checks.VolumeCheck;
 import com.bank.dqs.checks.TimestampSanityCheck;
 import com.bank.dqs.checks.ZeroRowCheck;
@@ -32,6 +34,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -272,7 +275,7 @@ public class DqsJob {
             LOG.info("Processing dataset: {}", ctx.getDatasetName());
             try {
                 // CheckFactory created per-dataset so DqsScoreCheck lambda captures a fresh list
-                CheckFactory datasetFactory = buildCheckFactory(datasetMetrics);
+                CheckFactory datasetFactory = buildCheckFactory(datasetMetrics, jdbcUrl, dbUser, dbPass);
 
                 List<DqCheck> checks;
                 try (Connection checkConn = DriverManager.getConnection(jdbcUrl, dbUser, dbPass)) {
@@ -300,30 +303,49 @@ public class DqsJob {
     }
 
     /**
-     * Builds a per-dataset {@link CheckFactory} with all Tier 1 and Tier 2 checks registered.
+     * Builds a per-dataset {@link CheckFactory} with all Tier 1, Tier 2, and Tier 3 checks registered.
      *
      * <p>Tier 1 checks: {@link FreshnessCheck}, {@link VolumeCheck}, {@link SchemaCheck},
      * {@link OpsCheck}. Tier 2 checks: {@link SlaCountdownCheck}, {@link ZeroRowCheck},
      * {@link BreakingChangeCheck}, {@link DistributionCheck}, {@link TimestampSanityCheck}.
+     * Tier 3 checks: {@link ClassificationWeightedCheck}, {@link SourceSystemHealthCheck}.
      *
      * <p>{@link DqsScoreCheck} is registered LAST — it reads from the {@code accumulator}
      * list which is populated by the other checks during the same dataset's run.
      *
      * @param accumulator the mutable list that will hold all metrics from prior checks
+     * @param jdbcUrl     JDBC connection URL for JDBC-backed check providers
+     * @param dbUser      database username
+     * @param dbPass      database password
      * @return a freshly constructed {@link CheckFactory} with all checks registered
      */
-    private static CheckFactory buildCheckFactory(List<DqMetric> accumulator) {
+    private static CheckFactory buildCheckFactory(
+            List<DqMetric> accumulator, String jdbcUrl, String dbUser, String dbPass) {
         CheckFactory f = new CheckFactory();
         f.register(new FreshnessCheck());
         f.register(new VolumeCheck());
         f.register(new SchemaCheck());
         f.register(new OpsCheck());
-        f.register(new SlaCountdownCheck()); // Tier 2 — Epic 6, Story 6.1
-        // TODO: wire JdbcSlaProvider via ConnectionProvider once JDBC connection threading is resolved
-        f.register(new ZeroRowCheck());        // Tier 2 — Epic 6, Story 6.2
-        f.register(new BreakingChangeCheck()); // Tier 2 — Epic 6, Story 6.3
-        f.register(new DistributionCheck());        // Tier 2 — Epic 6, Story 6.4
-        f.register(new TimestampSanityCheck());     // Tier 2 — Epic 6, Story 6.5
+        f.register(new SlaCountdownCheck(                                          // Tier 2 — Epic 6, Story 6.1
+                new SlaCountdownCheck.JdbcSlaProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass)),
+                Clock.systemDefaultZone()));
+        f.register(new ZeroRowCheck());                                            // Tier 2 — Epic 6, Story 6.2
+        f.register(new BreakingChangeCheck(                                        // Tier 2 — Epic 6, Story 6.3
+                new BreakingChangeCheck.JdbcSchemaBaselineProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new DistributionCheck(                                          // Tier 2 — Epic 6, Story 6.4
+                new DistributionCheck.JdbcExplodeConfigProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass)),
+                new DistributionCheck.JdbcBaselineStatsProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new TimestampSanityCheck());                                    // Tier 2 — Epic 6, Story 6.5
+        f.register(new ClassificationWeightedCheck(                                // Tier 3 — Epic 7, Story 7.1
+                new ClassificationWeightedCheck.JdbcClassificationProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new SourceSystemHealthCheck(                                    // Tier 3 — Epic 7, Story 7.1
+                new SourceSystemHealthCheck.JdbcSourceSystemStatsProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
         // DqsScoreCheck is registered LAST — always runs after all other checks
         // Lambda captures the accumulator list: reads prior check results for score computation
         f.register(new DqsScoreCheck(ctx -> accumulator));

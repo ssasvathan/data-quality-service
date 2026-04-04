@@ -1,3 +1,7 @@
+# last traceability: 7-1-classification-weighted-alerting-source-system-health -> PASS (2026-04-04)
+# last story update: 7-1-classification-weighted-alerting-source-system-health -> done (2026-04-04)
+# last atdd: 7-1-classification-weighted-alerting-source-system-health -> 18 failing tests generated (2026-04-04)
+# last story update: 7-1-classification-weighted-alerting-source-system-health -> ready-for-dev (2026-04-04)
 # last retrospective: epic-6-retrospective -> done (2026-04-04)
 # last epic update: epic-6 -> done (2026-04-04)
 # last epic update: epic-7 -> in-progress (2026-04-04)
@@ -57,7 +61,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-03T00:00:00
-last_updated: 2026-04-04 (epic-6 closed, epic-7 opened; epic-6-retrospective done; all 5 Tier 2 checks delivered: SlaCountdown, ZeroRow, BreakingChange, Distribution, TimestampSanity)
+last_updated: 2026-04-04 (epic-6 closed, epic-7 opened; epic-6-retrospective done; all 5 Tier 2 checks delivered; story 7-1 done: ClassificationWeightedCheck + SourceSystemHealthCheck implemented, 4 review patches applied, 245 tests passing)
 # last story update: 6-5-timestamp-sanity-check -> done (2026-04-04)
 # last story update: 6-1-sla-countdown-check -> ready-for-dev (2026-04-04)
 # last story update: 5-2-mcp-trending-comparison-tools -> done (2026-04-04)
@@ -212,7 +216,7 @@ development_status:
 
   # Epic 7: Tier 3 Intelligence & Executive Reporting (Phase 3)
   epic-7: in-progress
-  7-1-classification-weighted-alerting-source-system-health: backlog
+  7-1-classification-weighted-alerting-source-system-health: done
   7-2-correlation-inferred-sla-checks: backlog
   7-3-lineage-orphan-detection-cross-destination-consistency: backlog
   7-4-executive-reporting-suite: backlog
