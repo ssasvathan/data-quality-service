@@ -326,3 +326,82 @@ describe('[P0] DatasetCard — rendering stability', () => {
     ).not.toThrow()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Story 4.15 — AC2: Keyboard accessibility confirmation (no regression)
+//
+// GREEN PHASE: These behaviors already exist in DatasetCard.
+// The tests below confirm no regression and formally cover AC2 for Story 4.15.
+// ---------------------------------------------------------------------------
+
+describe('[P0] DatasetCard — keyboard accessibility (AC2, Story 4.15)', () => {
+  it('[P0] card has role="button" for keyboard accessibility (AC2 regression check)', () => {
+    // AC2: All interactive elements (cards) are focusable and activatable
+    // DatasetCard must have role="button" — already exists, confirm no regression
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)
+    expect(screen.getByRole('button')).toBeInTheDocument()
+  })
+
+  it('[P0] card has tabIndex={0} so keyboard users can Tab to it (AC2)', () => {
+    // AC2: Tab navigation must reach all interactive elements
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)
+    const card = screen.getByRole('button')
+    expect(card).toHaveAttribute('tabindex', '0')
+  })
+
+  it('[P0] Enter key triggers onClick on DatasetCard (AC2)', () => {
+    // AC2: interactive elements activatable via Enter
+    const onClick = vi.fn()
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} onClick={onClick} />)
+    const card = screen.getByRole('button')
+    fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' })
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('[P0] Space key triggers onClick on DatasetCard (AC2)', () => {
+    // AC2: interactive elements activatable via Space
+    const onClick = vi.fn()
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} onClick={onClick} />)
+    const card = screen.getByRole('button')
+    fireEvent.keyDown(card, { key: ' ', code: 'Space' })
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Story 4.15 — AC2: aria-label includes LOB name, score, count, status summary
+//
+// GREEN PHASE: DatasetCard already has an aria-label — confirming no regression
+// and that the full context is present per AC2 ("accessible and activatable").
+// ---------------------------------------------------------------------------
+
+describe('[P1] DatasetCard — aria-label for screen readers (AC2, Story 4.15)', () => {
+  it('[P1] card aria-label contains LOB name for screen reader context (AC2)', () => {
+    // AC2: screen reader users need full context from aria-label
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)
+    const card = screen.getByRole('button')
+    expect(card).toHaveAttribute('aria-label', expect.stringContaining('Consumer Banking'))
+  })
+
+  it('[P1] card aria-label contains DQS score (AC2)', () => {
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)
+    const card = screen.getByRole('button')
+    expect(card).toHaveAttribute('aria-label', expect.stringContaining('87'))
+  })
+
+  it('[P1] card aria-label contains dataset count (AC2)', () => {
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)
+    const card = screen.getByRole('button')
+    expect(card).toHaveAttribute('aria-label', expect.stringContaining('18 datasets'))
+  })
+
+  it('[P1] card aria-label contains status summary with passing/warning/failing counts (AC2)', () => {
+    // Full format: "{lobName}, DQS Score {score}, {count} datasets, {pass} passing, {warn} warning, {fail} failing"
+    renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)
+    const card = screen.getByRole('button')
+    expect(card).toHaveAttribute(
+      'aria-label',
+      'Consumer Banking, DQS Score 87, 18 datasets, 16 passing, 1 warning, 1 failing'
+    )
+  })
+})

@@ -115,6 +115,10 @@ export function getDqsColorLight(score: number): string {
 //   2xl = theme.spacing(6)   → 48px
 
 const theme = createTheme({
+  breakpoints: {
+    values: { xs: 0, sm: 1024, md: 1280, lg: 1440, xl: 1920 },
+  },
+
   palette: {
     mode: 'light',
 

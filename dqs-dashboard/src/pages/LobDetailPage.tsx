@@ -306,21 +306,23 @@ export default function LobDetailPage(): React.ReactElement {
 
       {/* DataGrid — only when datasets exist */}
       {data && datasets.length > 0 && (
-        <DataGrid
-          rows={datasets}
-          columns={columns}
-          getRowId={(row) => row.dataset_id}
-          onRowClick={handleRowClick}
-          initialState={{
-            sorting: {
-              sortModel: [{ field: 'dqs_score', sort: 'asc' }],
-            },
-          }}
-          sx={{ cursor: 'pointer' }}
-          autoHeight
-          disableRowSelectionOnClick
-          hideFooter
-        />
+        <Box sx={{ overflowX: 'auto', width: '100%' }}>
+          <DataGrid
+            rows={datasets}
+            columns={columns}
+            getRowId={(row) => row.dataset_id}
+            onRowClick={handleRowClick}
+            initialState={{
+              sorting: {
+                sortModel: [{ field: 'dqs_score', sort: 'asc' }],
+              },
+            }}
+            sx={{ cursor: 'pointer' }}
+            autoHeight
+            disableRowSelectionOnClick
+            hideFooter
+          />
+        </Box>
       )}
     </Box>
   )

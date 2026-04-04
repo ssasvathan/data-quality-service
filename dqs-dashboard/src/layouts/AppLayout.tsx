@@ -331,19 +331,55 @@ function RunFailedBanner() {
 export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme()
   const { timeRange, setTimeRange } = useTimeRange()
+  const [liveMessage, setLiveMessage] = useState('')
+  const { isFetching: summaryFetching } = useSummary()
+  const prevFetchingRef = useRef(false)
+  const timeRangeChangedRef = useRef(false)
 
+  // Track time range changes so we only announce after an actual range change
   const handleTimeRangeChange = (
     _: React.MouseEvent<HTMLElement>,
     value: TimeRange | null
   ): void => {
     if (value) {
+      timeRangeChangedRef.current = true
       setTimeRange(value)
     }
   }
 
+  // AC3: Announce data update when isFetching transitions true → false after time range change
+  useEffect(() => {
+    if (prevFetchingRef.current && !summaryFetching && timeRangeChangedRef.current) {
+      setLiveMessage(`Data updated for ${timeRange} range`)
+      timeRangeChangedRef.current = false
+      const timer = setTimeout(() => setLiveMessage(''), 3000)
+      return () => clearTimeout(timer)
+    }
+    prevFetchingRef.current = summaryFetching
+  }, [summaryFetching, timeRange])
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Skip to main content link — visible only on keyboard focus (AC6) */}
+      {/* AC3: aria-live region for screen reader data-update announcements — off-screen technique */}
+      <Box
+        aria-live="polite"
+        aria-atomic="true"
+        sx={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {liveMessage}
+      </Box>
+
+      {/* Skip to main content link — visible only on keyboard focus (AC1) */}
       <Box
         component="a"
         href="#main-content"
@@ -421,7 +457,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         id="main-content"
         sx={{ flexGrow: 1, p: 3 }}
       >
-        {children}
+        {/* AC5: max-width centering — content centers at 1440px for wide viewports */}
+        <Box style={{ maxWidth: '1440px', marginLeft: 'auto', marginRight: 'auto', width: '100%' }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   )

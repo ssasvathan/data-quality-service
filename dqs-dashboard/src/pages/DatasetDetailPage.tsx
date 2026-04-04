@@ -342,7 +342,8 @@ export default function DatasetDetailPage(): React.ReactElement {
       {/* Left panel — fixed width */}
       <Box
         sx={{
-          width: { xs: 300, md: 380 },
+          width: { sm: 300, md: 380 },
+          minWidth: { sm: 300, md: 380 },
           flexShrink: 0,
           overflow: 'auto',
           borderRight: 1,
