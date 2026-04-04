@@ -23,3 +23,7 @@ Items deferred during code reviews, noted here for future sprint planning.
 ## Deferred from: code review of 5-2-mcp-trending-comparison-tools (2026-04-04)
 
 - `_CHECK_TYPES_SQL` in `dqs-serve/src/serve/mcp/tools.py` (line 91) joins `v_dq_metric_numeric_active` using `m.run_id` but the actual view/table column is `dq_run_id`. This pre-existing Story 5.1 bug means `query_failures` will silently return no check types for failed datasets at runtime. Fix in a follow-up patch: change `m.run_id = r.id` to `m.dq_run_id = r.id` in `_CHECK_TYPES_SQL`.
+
+## Deferred from: code review of 6-1-sla-countdown-check (2026-04-04)
+
+- `ZoneId.systemDefault()` timezone portability — `SlaCountdownCheck` computes partition-date midnight using `context.getPartitionDate().atStartOfDay(ZoneId.systemDefault())`. If the Spark cluster JVM timezone differs from the expected Eastern timezone, the elapsed-hours calculation will shift. Pre-existing design decision explicitly specified in story 6.1 spec. Consider switching to a named zone (`ZoneId.of("America/New_York")`) in a future hardening story once the cluster timezone policy is confirmed.

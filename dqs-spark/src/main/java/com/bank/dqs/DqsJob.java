@@ -6,6 +6,7 @@ import com.bank.dqs.checks.DqsScoreCheck;
 import com.bank.dqs.checks.FreshnessCheck;
 import com.bank.dqs.checks.OpsCheck;
 import com.bank.dqs.checks.SchemaCheck;
+import com.bank.dqs.checks.SlaCountdownCheck;
 import com.bank.dqs.checks.VolumeCheck;
 import com.bank.dqs.model.DatasetContext;
 import com.bank.dqs.model.DqMetric;
@@ -309,7 +310,9 @@ public class DqsJob {
         f.register(new VolumeCheck());
         f.register(new SchemaCheck());
         f.register(new OpsCheck());
-        // DqsScoreCheck is registered last — always runs after Freshness/Volume/Schema/Ops
+        f.register(new SlaCountdownCheck()); // ADD: Tier 2 — Epic 6, Story 6.1
+        // TODO: wire JdbcSlaProvider via ConnectionProvider once JDBC connection threading is resolved
+        // DqsScoreCheck is registered LAST — always runs after all other checks
         // Lambda captures the accumulator list: reads prior check results for score computation
         f.register(new DqsScoreCheck(ctx -> accumulator));
         return f;

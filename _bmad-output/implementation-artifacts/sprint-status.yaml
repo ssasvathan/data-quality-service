@@ -53,7 +53,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-03T00:00:00
-last_updated: 2026-04-04 (epic-5 closed, epic-6 opened)
+last_updated: 2026-04-04 (epic-5 closed, epic-6 opened; 6-1-sla-countdown-check done)
+# last story update: 6-1-sla-countdown-check -> ready-for-dev (2026-04-04)
 # last story update: 5-2-mcp-trending-comparison-tools -> done (2026-04-04)
 # last traceability: 5-2-mcp-trending-comparison-tools -> PASS (2026-04-04)
 # last story update: 5-2-mcp-trending-comparison-tools -> review (2026-04-04)
@@ -197,7 +198,7 @@ development_status:
 
   # Epic 6: Tier 2 Quality Checks (Phase 2)
   epic-6: in-progress
-  6-1-sla-countdown-check: backlog
+  6-1-sla-countdown-check: done
   6-2-zero-row-check: backlog
   6-3-breaking-change-check: backlog
   6-4-distribution-checks-with-eventattribute-explosion: backlog
