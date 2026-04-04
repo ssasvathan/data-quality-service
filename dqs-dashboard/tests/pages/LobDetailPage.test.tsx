@@ -680,6 +680,110 @@ describe('[P0] LobDetailPage — useLobDatasets hook integration', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Story 4.14 — AC2: isFetching stale-while-revalidate opacity on TrendSparkline
+// RED PHASE: LobDetailPage does not yet destructure isFetching or apply opacity
+// to the TrendSparkline renderCell in the DataGrid columns definition.
+// ---------------------------------------------------------------------------
+
+describe('[P0] LobDetailPage — isFetching opacity on trend sparklines (AC2, Story 4.14)', () => {
+  it('[P0] TrendSparkline wrapper has opacity 0.5 when isFetching is true', () => {
+    // THIS TEST WILL FAIL — LobDetailPage does not yet use isFetching from useLobDatasets
+    // Implementation: destructure isFetching from useLobDatasets(), apply to renderCell:
+    //   renderCell: (params) => (
+    //     <Box sx={{ opacity: isFetching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+    //       <TrendSparkline data={params.row.trend} size="mini" />
+    //     </Box>
+    //   )
+    const data = makeLobDatasetsResponse()
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderLobDetailPage()
+
+    // Each TrendSparkline must be wrapped in a Box with opacity: 0.5
+    // The mock TrendSparkline renders <span data-testid="trend-sparkline">
+    const sparklines = screen.getAllByTestId('trend-sparkline')
+    expect(sparklines.length).toBeGreaterThan(0)
+
+    // Each sparkline's parent wrapper Box must have opacity 0.5 style
+    const firstSparklineWrapper = sparklines[0].parentElement
+    expect(firstSparklineWrapper).not.toBeNull()
+    expect(firstSparklineWrapper!.style.opacity).toBe('0.5')
+  })
+
+  it('[P0] TrendSparkline wrapper has opacity 1 (full) when isFetching is false', () => {
+    // THIS TEST WILL FAIL — isFetching opacity not yet implemented in LobDetailPage
+    const data = makeLobDatasetsResponse()
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderLobDetailPage()
+
+    const sparklines = screen.getAllByTestId('trend-sparkline')
+    expect(sparklines.length).toBeGreaterThan(0)
+
+    // When isFetching is false, no dimming — opacity must be 1 or absent
+    const firstSparklineWrapper = sparklines[0].parentElement
+    expect(firstSparklineWrapper).not.toBeNull()
+    const opacity = firstSparklineWrapper!.style.opacity
+    expect(opacity === '' || opacity === '1').toBe(true)
+  })
+
+  it('[P1] existing data rows remain visible (not hidden) during isFetching', () => {
+    // THIS TEST WILL FAIL — guards stale-while-revalidate correctness
+    // Per UX spec: "Existing data stays visible (dimmed) while new data loads"
+    // Data must not be replaced by skeleton or hidden during isFetching
+    const data = makeLobDatasetsResponse({
+      datasets: [
+        makeDatasetInLob({ dataset_id: 101, dataset_name: 'retail_transactions' }),
+        makeDatasetInLob({ dataset_id: 102, dataset_name: 'retail_customers' }),
+      ],
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderLobDetailPage()
+
+    // Dataset names must still be visible (just dimmed, not hidden)
+    expect(screen.getByText('retail_transactions')).toBeInTheDocument()
+    expect(screen.getByText('retail_customers')).toBeInTheDocument()
+  })
+
+  it('[P1] does not show any spinning loader when isFetching is true', () => {
+    // THIS TEST WILL FAIL — guards against forbidden spinner pattern
+    // Per project-context.md anti-patterns: NEVER spinning loaders
+    const data = makeLobDatasetsResponse()
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderLobDetailPage()
+
+    // MUI CircularProgress renders with role="progressbar"
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Rendering stability — smoke tests
 // ---------------------------------------------------------------------------
 

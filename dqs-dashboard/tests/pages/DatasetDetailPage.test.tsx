@@ -1192,3 +1192,387 @@ describe('[P0] DatasetDetailPage — hook integration', () => {
     expect(mockUseDatasetTrend).toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Story 4.14 — AC7: Partial failure isolation — trendError shows "Failed to load
+// trend data" while rest of right panel renders normally.
+// RED PHASE: DatasetDetailPage does not yet handle trendError or metricsError
+// independently — currently detailError controls the entire right panel.
+// ---------------------------------------------------------------------------
+
+describe('[P0] DatasetDetailPage — partial failure: trendError (AC7, Story 4.14)', () => {
+  it('[P0] renders "Failed to load trend data" when useDatasetTrend isError is true', () => {
+    // THIS TEST WILL FAIL — DatasetDetailPage does not yet isolate trendError
+    // Implementation:
+    //   const { data: trendData, isLoading: trendLoading, isError: trendError, refetch: trendRefetch }
+    //     = useDatasetTrend(datasetId, timeRange)
+    //   if (trendError) { render "Failed to load trend data." + Retry link }
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeMetricsResponse(),
+    })
+    // Trend hook fails
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetTrend>)
+
+    renderDatasetDetail()
+
+    // Trend area must show the failure message
+    expect(screen.getByText(/failed to load trend data/i)).toBeInTheDocument()
+  })
+
+  it('[P0] rest of right panel renders normally when only trendError is true', () => {
+    // THIS TEST WILL FAIL — trendError isolation not yet implemented
+    // Key assertion: the check results section and dataset header still render
+    // even though trend data failed. Per AC7: "while other components render normally"
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail({ dataset_name: 'retail_transactions', check_status: 'PASS' }),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeMetricsResponse(9, [
+        makeCheckResult({ check_type: 'VOLUME', status: 'PASS' }),
+      ]),
+    })
+    // Only trend fails
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetTrend>)
+
+    renderDatasetDetail()
+
+    // Trend error message is shown
+    expect(screen.getByText(/failed to load trend data/i)).toBeInTheDocument()
+
+    // But check results still render (other components unaffected)
+    expect(screen.getAllByText(/check results/i).length).toBeGreaterThan(0)
+
+    // Dataset name still shows in right panel (header not affected)
+    expect(screen.getAllByText('retail_transactions').length).toBeGreaterThan(0)
+  })
+
+  it('[P0] renders a retry link/button in the trend error area', () => {
+    // THIS TEST WILL FAIL — trendError + retry not yet implemented
+    const trendRefetch = vi.fn()
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeMetricsResponse(),
+    })
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: trendRefetch,
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetTrend>)
+
+    renderDatasetDetail()
+
+    // A retry affordance must be present in the trend area
+    expect(screen.getByText(/retry/i)).toBeInTheDocument()
+  })
+
+  it('[P1] clicking retry in trend error area calls trendRefetch', () => {
+    // THIS TEST WILL FAIL — trendError + retry not yet implemented
+    const trendRefetch = vi.fn()
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeMetricsResponse(),
+    })
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: trendRefetch,
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetTrend>)
+
+    renderDatasetDetail()
+
+    fireEvent.click(screen.getByText(/retry/i))
+    expect(trendRefetch).toHaveBeenCalledOnce()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Story 4.14 — AC7: Partial failure isolation — metricsError shows "Failed to
+// load check results" while rest of right panel renders normally.
+// RED PHASE: DatasetDetailPage does not yet handle metricsError independently.
+// ---------------------------------------------------------------------------
+
+describe('[P0] DatasetDetailPage — partial failure: metricsError (AC7, Story 4.14)', () => {
+  it('[P0] renders "Failed to load check results" when useDatasetMetrics isError is true', () => {
+    // THIS TEST WILL FAIL — DatasetDetailPage does not yet isolate metricsError
+    // Implementation:
+    //   const { data: metricsData, isLoading: metricsLoading, isError: metricsError, refetch: metricsRefetch }
+    //     = useDatasetMetrics(datasetId)
+    //   if (metricsError) { render "Failed to load check results." + Retry link }
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    // Metrics hook fails
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetMetrics>)
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeTrendResponse(),
+    })
+
+    renderDatasetDetail()
+
+    // Check results area shows failure message
+    expect(screen.getByText(/failed to load check results/i)).toBeInTheDocument()
+  })
+
+  it('[P0] rest of right panel renders normally when only metricsError is true', () => {
+    // THIS TEST WILL FAIL — metricsError isolation not yet implemented
+    // TrendSparkline must still render when only metrics failed
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail({ dataset_name: 'retail_transactions' }),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    // Only metrics fails
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetMetrics>)
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeTrendResponse(),
+    })
+
+    renderDatasetDetail()
+
+    // Metrics area shows the failure message
+    expect(screen.getByText(/failed to load check results/i)).toBeInTheDocument()
+
+    // Trend sparkline still renders (unaffected)
+    expect(screen.getByTestId('trend-sparkline')).toBeInTheDocument()
+
+    // Dataset name still shows in right panel header
+    expect(screen.getAllByText('retail_transactions').length).toBeGreaterThan(0)
+  })
+
+  it('[P0] renders a retry link/button in the metrics error area', () => {
+    // THIS TEST WILL FAIL — metricsError + retry not yet implemented
+    const metricsRefetch = vi.fn()
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: metricsRefetch,
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetMetrics>)
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeTrendResponse(),
+    })
+
+    renderDatasetDetail()
+
+    // A retry affordance must be present in the metrics area
+    expect(screen.getByText(/retry/i)).toBeInTheDocument()
+  })
+
+  it('[P1] clicking retry in metrics error area calls metricsRefetch', () => {
+    // THIS TEST WILL FAIL — metricsError + retry not yet implemented
+    const metricsRefetch = vi.fn()
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: metricsRefetch,
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetMetrics>)
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeTrendResponse(),
+    })
+
+    renderDatasetDetail()
+
+    fireEvent.click(screen.getByText(/retry/i))
+    expect(metricsRefetch).toHaveBeenCalledOnce()
+  })
+
+  it('[P1] existing page does not crash when both trendError and metricsError are true', () => {
+    // THIS TEST WILL FAIL — dual partial failure not yet handled without crashing
+    // Per project-context.md: "Never let one component failure crash the page"
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetMetrics>)
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      data: undefined,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetTrend>)
+
+    expect(() => renderDatasetDetail()).not.toThrow()
+
+    // Both failure messages should appear
+    expect(screen.getByText(/failed to load trend data/i)).toBeInTheDocument()
+    expect(screen.getByText(/failed to load check results/i)).toBeInTheDocument()
+
+    // Dataset header and name still visible
+    expect(screen.getAllByText('retail_transactions').length).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Story 4.14 — AC2: isFetching stale-while-revalidate opacity on DatasetDetailPage
+// RED PHASE: DatasetDetailPage does not yet apply isFetching opacity to TrendSparkline.
+// ---------------------------------------------------------------------------
+
+describe('[P1] DatasetDetailPage — isFetching opacity on trend sparkline (AC2, Story 4.14)', () => {
+  it('[P1] TrendSparkline wrapper has opacity 0.5 when useDatasetTrend isFetching is true', () => {
+    // THIS TEST WILL FAIL — DatasetDetailPage does not yet use isFetching from useDatasetTrend
+    // Implementation:
+    //   const { ..., isFetching: trendFetching } = useDatasetTrend(datasetId, timeRange)
+    //   <Box sx={{ opacity: trendFetching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+    //     <TrendSparkline ... />
+    //   </Box>
+    mockUseDatasetDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeDatasetDetail(),
+      refetch: vi.fn(),
+    })
+    mockUseLobDatasets.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeLobDatasetsResponse(),
+    })
+    mockUseDatasetMetrics.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: makeMetricsResponse(),
+    })
+    mockUseDatasetTrend.mockReturnValue({
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      data: makeTrendResponse(),
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof import('../../src/api/queries').useDatasetTrend>)
+
+    renderDatasetDetail()
+
+    const sparkline = screen.getByTestId('trend-sparkline')
+    expect(sparkline).toBeInTheDocument()
+
+    // Sparkline wrapper must have opacity: 0.5 when isFetching
+    const sparklineWrapper = sparkline.parentElement
+    expect(sparklineWrapper).not.toBeNull()
+    expect(sparklineWrapper!.style.opacity).toBe('0.5')
+  })
+})

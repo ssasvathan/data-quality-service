@@ -52,6 +52,8 @@ class SummaryResponse(BaseModel):
     degraded_count: int
     critical_count: int
     lobs: list[LobSummaryItem]
+    last_run_at: Optional[str] = None  # ISO 8601 timestamp of most recent run
+    run_failed: bool = False           # true if most recent run failed entirely
 
 
 # ---------------------------------------------------------------------------
@@ -84,6 +86,18 @@ _LATEST_PER_DATASET_SQL = text(
         partition_date
     FROM ranked
     WHERE rn = 1
+    """
+)
+
+# Latest run metadata query: retrieves the most recent run's timestamp and status.
+# Used to populate last_run_at and run_failed in the SummaryResponse.
+_LATEST_RUN_METADATA_SQL = text(
+    """
+    SELECT
+        MAX(partition_date) AS last_run_at,
+        BOOL_OR(check_status = 'FAIL') AS run_failed
+    FROM v_dq_run_active
+    WHERE partition_date = (SELECT MAX(partition_date) FROM v_dq_run_active)
     """
 )
 
@@ -170,10 +184,22 @@ def get_summary(db: Session = Depends(get_db)) -> SummaryResponse:
             )
         )
 
+    # Fetch latest run metadata (last_run_at, run_failed)
+    run_meta_row = db.execute(_LATEST_RUN_METADATA_SQL).mappings().first()
+    last_run_at: Optional[str] = None
+    run_failed: bool = False
+    if run_meta_row is not None:
+        raw_ts = run_meta_row["last_run_at"]
+        if raw_ts is not None:
+            last_run_at = str(raw_ts.isoformat()) if hasattr(raw_ts, "isoformat") else str(raw_ts)
+        run_failed = bool(run_meta_row["run_failed"]) if run_meta_row["run_failed"] is not None else False
+
     return SummaryResponse(
         total_datasets=total_datasets,
         healthy_count=healthy_count,
         degraded_count=degraded_count,
         critical_count=critical_count,
         lobs=lob_items,
+        last_run_at=last_run_at,
+        run_failed=run_failed,
     )

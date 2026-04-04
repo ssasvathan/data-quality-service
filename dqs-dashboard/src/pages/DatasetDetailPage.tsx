@@ -96,8 +96,8 @@ export default function DatasetDetailPage(): React.ReactElement {
   const lobId = datasetDetail?.lob_id ?? lobIdFromParam
 
   const { data: lobData, isLoading: lobLoading } = useLobDatasets(lobId, timeRange)
-  const { data: metricsData, isLoading: metricsLoading } = useDatasetMetrics(datasetId)
-  const { data: trendData, isLoading: trendLoading } = useDatasetTrend(datasetId, timeRange)
+  const { data: metricsData, isLoading: metricsLoading, isError: metricsError, refetch: metricsRefetch } = useDatasetMetrics(datasetId)
+  const { data: trendData, isLoading: trendLoading, isError: trendError, isFetching: trendFetching, refetch: trendRefetch } = useDatasetTrend(datasetId, timeRange)
 
   // Overall loading: show full skeleton when primary data hasn't arrived yet
   const isLoading = detailLoading || metricsLoading || trendLoading
@@ -199,15 +199,45 @@ export default function DatasetDetailPage(): React.ReactElement {
               size="lg"
               showTrend={false}
             />
-            {trendValues.length > 0 && (
-              <TrendSparkline data={trendValues} size="lg" showBaseline={true} />
-            )}
+            {/* AC7: partial failure isolation for trend data */}
+            {trendError ? (
+              <Box sx={{ color: 'error.main' }}>
+                <Typography variant="body2">Failed to load trend data.</Typography>
+                <Typography
+                  component="button"
+                  type="button"
+                  onClick={() => void trendRefetch()}
+                  sx={{ color: 'primary.main', cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', mt: 0.5 }}
+                >
+                  Retry
+                </Typography>
+              </Box>
+            ) : trendValues.length > 0 ? (
+              /* AC2: isFetching opacity on trend sparkline */
+              <Box style={{ opacity: trendFetching ? 0.5 : 1 }} sx={{ transition: 'opacity 0.2s' }}>
+                <TrendSparkline data={trendValues} size="lg" showBaseline={true} />
+              </Box>
+            ) : null}
           </Box>
 
           {/* Check Results list */}
           <Typography variant="h6" sx={{ mb: 1 }}>
             Check Results
           </Typography>
+          {/* AC7: partial failure isolation for metrics data */}
+          {metricsError ? (
+            <Box sx={{ color: 'error.main' }}>
+              <Typography variant="body2">Failed to load check results.</Typography>
+              <Typography
+                component="button"
+                type="button"
+                onClick={() => void metricsRefetch()}
+                sx={{ color: 'primary.main', cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', mt: 0.5 }}
+              >
+                Retry
+              </Typography>
+            </Box>
+          ) : (
           <Box>
             {checkResults.map((cr) => {
               const checkScore = getCheckScore(cr.numeric_metrics)
@@ -252,6 +282,7 @@ export default function DatasetDetailPage(): React.ReactElement {
               </Typography>
             )}
           </Box>
+          )}
         </Grid>
 
         {/* Right column */}

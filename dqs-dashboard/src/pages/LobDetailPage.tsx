@@ -105,9 +105,14 @@ export default function LobDetailPage(): React.ReactElement {
   const navigate = useNavigate()
   const { timeRange } = useTimeRange()
 
+  // Hook called unconditionally (rules of hooks). The enabled: !!lobId guard
+  // in useLobDatasets prevents a fetch when lobId is undefined.
+  // Placed before columns definition so isFetching is in scope for renderCell closures.
+  const { data, isLoading, isError, isFetching, refetch } = useLobDatasets(lobId ?? '', timeRange)
+
   // ---------------------------------------------------------------------------
   // Column definitions for MUI X DataGrid — defined inside component after
-  // useNavigate() so they can reference component-local functions cleanly.
+  // useLobDatasets() so isFetching is in scope for the trend renderCell closure.
   // ---------------------------------------------------------------------------
 
   const columns: GridColDef<DatasetInLob>[] = [
@@ -133,7 +138,10 @@ export default function LobDetailPage(): React.ReactElement {
       width: 100,
       sortable: false,
       renderCell: (params) => (
-        <TrendSparkline data={params.row.trend} size="mini" />
+        /* AC2: isFetching opacity — dims sparklines during stale-while-revalidate refetch */
+        <Box style={{ opacity: isFetching ? 0.5 : 1 }} sx={{ transition: 'opacity 0.2s' }}>
+          <TrendSparkline data={params.row.trend} size="mini" />
+        </Box>
       ),
     },
     {
@@ -161,10 +169,6 @@ export default function LobDetailPage(): React.ReactElement {
       renderCell: (params) => <StatusChip status={params.row.check_status} />,
     },
   ]
-
-  // Hook called unconditionally (rules of hooks). The enabled: !!lobId guard
-  // in useLobDatasets prevents a fetch when lobId is undefined.
-  const { data, isLoading, isError, refetch } = useLobDatasets(lobId ?? '', timeRange)
 
   // Guard: if lobId is missing from URL params, render a not-found message.
   if (!lobId) {

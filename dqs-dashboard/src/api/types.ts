@@ -43,6 +43,8 @@ export interface SummaryResponse {
   degraded_count: number
   critical_count: number
   lobs: LobSummaryItem[]
+  last_run_at?: string | null  // ISO 8601 timestamp of most recent successful run
+  run_failed?: boolean         // true if most recent run failed entirely
 }
 
 export interface DatasetSummary {

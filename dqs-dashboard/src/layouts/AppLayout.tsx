@@ -23,13 +23,15 @@ import {
   TextField,
   Autocomplete,
   InputAdornment,
+  Button,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { useLocation, useParams, useSearchParams, Link as RouterLink, useNavigate } from 'react-router'
 import SearchIcon from '@mui/icons-material/Search'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import { useTimeRange } from '../context/TimeRangeContext'
 import type { TimeRange } from '../context/TimeRangeContext'
-import { useSearch } from '../api/queries'
+import { useSearch, useSummary } from '../api/queries'
 import type { SearchResult } from '../api/types'
 import { DqsScoreChip } from '../components'
 
@@ -225,6 +227,107 @@ function GlobalSearch() {
   )
 }
 
+/**
+ * LastUpdatedIndicator — shows relative time since last DQS run in the header.
+ * AC5: amber (warning.main) when stale (>=24h), text.secondary when fresh (<24h).
+ * Renders nothing if last_run_at is absent or null (graceful degradation).
+ */
+function LastUpdatedIndicator() {
+  const { data } = useSummary()
+  const lastRunAt = data?.last_run_at
+
+  if (!lastRunAt) return null
+
+  const lastRunDate = new Date(lastRunAt)
+  const now = new Date()
+  const diffMs = now.getTime() - lastRunDate.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
+  const isStale = diffHours >= 24
+
+  // Format relative time
+  let relativeTime: string
+  if (diffHours < 1) {
+    const diffMinutes = Math.round(diffMs / (1000 * 60))
+    relativeTime = `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
+  } else if (diffHours < 24) {
+    const hours = Math.round(diffHours)
+    relativeTime = `${hours} hour${hours !== 1 ? 's' : ''} ago`
+  } else {
+    const days = Math.floor(diffHours / 24)
+    const remainingHours = Math.round(diffHours % 24)
+    if (remainingHours > 0) {
+      relativeTime = `${Math.round(diffHours)} hours ago`
+    } else {
+      relativeTime = `${days} day${days !== 1 ? 's' : ''} ago`
+    }
+  }
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        mx: 2,
+        color: isStale ? 'warning.main' : 'text.secondary',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <AccessTimeIcon fontSize="inherit" />
+      <Typography variant="caption" sx={{ color: 'inherit' }}>
+        Last updated: {relativeTime}
+      </Typography>
+    </Box>
+  )
+}
+
+/**
+ * RunFailedBanner — yellow banner shown below header when latest DQS run failed.
+ * AC6: dismissible via local state, reappears on reload.
+ * Renders nothing if run_failed is absent/false.
+ */
+function RunFailedBanner() {
+  const [dismissed, setDismissed] = useState(false)
+  const { data } = useSummary()
+
+  if (dismissed) return null
+  if (data?.run_failed !== true) return null
+
+  const lastRunAt = data.last_run_at
+  const timeStr = lastRunAt ? new Date(lastRunAt).toLocaleString() : 'unknown time'
+
+  return (
+    <Box
+      sx={{
+        width: '100%',
+        bgcolor: 'warning.light',
+        color: 'warning.dark',
+        borderBottom: '1px solid',
+        borderColor: 'warning.main',
+        px: 3,
+        py: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+      }}
+    >
+      <Typography variant="body2">
+        Latest run failed at {timeStr}. Showing results from previous run.
+      </Typography>
+      <Button
+        size="small"
+        variant="text"
+        onClick={() => setDismissed(true)}
+        sx={{ color: 'warning.dark', minWidth: 'auto' }}
+        aria-label="dismiss"
+      >
+        Dismiss
+      </Button>
+    </Box>
+  )
+}
+
 export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme()
   const { timeRange, setTimeRange } = useTimeRange()
@@ -283,6 +386,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <AppBreadcrumbs />
           </Box>
 
+          {/* AC5: LastUpdatedIndicator — amber when stale (>=24h), gray when fresh */}
+          <LastUpdatedIndicator />
+
           {/* Time range toggle (AC1, AC3) */}
           <ToggleButtonGroup
             value={timeRange}
@@ -305,6 +411,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           Responsive: 56px base, 48px landscape, 64px at >=600px — matches theme.mixins.toolbar exactly.
           Per MUI docs, a sibling <Toolbar /> is the recommended approach for fixed AppBar offset. */}
       <Toolbar aria-hidden="true" />
+
+      {/* AC6: RunFailedBanner — yellow banner below header when latest run failed */}
+      <RunFailedBanner />
 
       {/* Main content area (AC5: <main> landmark) */}
       <Box

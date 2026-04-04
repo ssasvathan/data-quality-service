@@ -615,6 +615,161 @@ describe('[P1] SummaryPage — empty state (edge case)', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Story 4.14 — AC2: isFetching stale-while-revalidate opacity on DatasetCards
+// RED PHASE: SummaryPage does not yet destructure isFetching or apply opacity.
+// ---------------------------------------------------------------------------
+
+describe('[P0] SummaryPage — isFetching opacity indicator (AC2, Story 4.14)', () => {
+  it('[P0] wraps DatasetCard grid items in a Box with opacity 0.5 when isFetching is true', () => {
+    // THIS TEST WILL FAIL — SummaryPage does not yet use isFetching from useSummary
+    // Implementation: destructure isFetching from useSummary(), wrap each Grid item
+    // in <Box sx={{ opacity: isFetching ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+    const data = makeSummaryResponse()
+    mockUseSummary.mockReturnValue({
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderSummaryPage()
+
+    // The wrapper Box around DatasetCard must have opacity: 0.5 inline style
+    // when isFetching is true. MUI sx prop renders as inline style on the DOM element.
+    const cards = screen.getAllByTestId('dataset-card')
+    expect(cards.length).toBeGreaterThan(0)
+
+    // Each card's parent wrapper Box must have opacity 0.5 style applied
+    const firstCardWrapper = cards[0].parentElement
+    expect(firstCardWrapper).not.toBeNull()
+    expect(firstCardWrapper!.style.opacity).toBe('0.5')
+  })
+
+  it('[P0] wrapper Box has opacity 1 (full) when isFetching is false', () => {
+    // THIS TEST WILL FAIL — isFetching opacity not yet implemented
+    const data = makeSummaryResponse()
+    mockUseSummary.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderSummaryPage()
+
+    const cards = screen.getAllByTestId('dataset-card')
+    expect(cards.length).toBeGreaterThan(0)
+
+    // When isFetching is false, opacity must be 1 (no dimming)
+    const firstCardWrapper = cards[0].parentElement
+    expect(firstCardWrapper).not.toBeNull()
+    // Either explicit '1' or no opacity style (defaults to 1)
+    const opacity = firstCardWrapper!.style.opacity
+    expect(opacity === '' || opacity === '1').toBe(true)
+  })
+
+  it('[P1] does not show any spinning loader elements when isFetching is true', () => {
+    // THIS TEST WILL FAIL — guards against regression: no spinners allowed (project-context.md)
+    const data = makeSummaryResponse()
+    mockUseSummary.mockReturnValue({
+      isLoading: false,
+      isFetching: true,
+      isError: false,
+      data,
+      refetch: vi.fn(),
+    })
+
+    renderSummaryPage()
+
+    // MUI CircularProgress renders with role="progressbar"
+    // Per project-context.md: NEVER spinning loaders — skeletons only
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Story 4.14 — AC8: Network error → full-page "Unable to connect to DQS"
+// RED PHASE: SummaryPage currently shows generic "Failed to load summary data"
+// for all errors. AC8 requires a specific full-page message for network failures.
+// ---------------------------------------------------------------------------
+
+describe('[P0] SummaryPage — API unreachable full-page error (AC8, Story 4.14)', () => {
+  it('[P0] renders full-page unreachable message when error is a network TypeError', () => {
+    // THIS TEST WILL FAIL — SummaryPage does not yet distinguish network errors
+    // Implementation (preferred approach from Dev Notes):
+    //   if (isError && error instanceof TypeError && error.message.includes('fetch')) {
+    //     render "Unable to connect to DQS. Check your network connection or try again."
+    //   }
+    const networkError = new TypeError('Failed to fetch')
+    mockUseSummary.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: networkError,
+      data: undefined,
+      refetch: vi.fn(),
+    })
+
+    renderSummaryPage()
+
+    expect(
+      screen.getByText(/unable to connect to dqs/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/check your network connection/i)
+    ).toBeInTheDocument()
+  })
+
+  it('[P0] renders a retry button on the full-page unreachable error', () => {
+    // THIS TEST WILL FAIL — unreachable-specific retry not yet implemented
+    const networkError = new TypeError('Failed to fetch')
+    mockUseSummary.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: networkError,
+      data: undefined,
+      refetch: vi.fn(),
+    })
+
+    renderSummaryPage()
+
+    // Must include a retry affordance — button or link with "retry" or "try again" text
+    const retryAffordance =
+      screen.queryByRole('button', { name: /retry|try again/i }) ??
+      screen.queryByText(/retry|try again/i)
+    expect(retryAffordance).toBeInTheDocument()
+  })
+
+  it('[P1] still renders generic error message for non-network errors', () => {
+    // THIS TEST WILL FAIL — SummaryPage must keep existing generic error for non-network errors
+    const genericError = new Error('Internal Server Error')
+    mockUseSummary.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      error: genericError,
+      data: undefined,
+      refetch: vi.fn(),
+    })
+
+    renderSummaryPage()
+
+    // Non-network errors: existing "Failed to load summary data" message
+    // (not the full-page "Unable to connect" which is reserved for network errors)
+    expect(
+      screen.getByText(/failed to load summary data/i)
+    ).toBeInTheDocument()
+    // Must NOT show the network-error message for non-network failures
+    expect(
+      screen.queryByText(/unable to connect to dqs/i)
+    ).not.toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Rendering stability — smoke tests
 // ---------------------------------------------------------------------------
 

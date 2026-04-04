@@ -22,7 +22,7 @@ import { DatasetCard } from '../components'
 
 export default function SummaryPage(): React.ReactElement {
   const navigate = useNavigate()
-  const { data, isLoading, isError, refetch } = useSummary()
+  const { data, isLoading, isError, isFetching, error, refetch } = useSummary()
 
   // -------------------------------------------------------------------------
   // Loading state — 6 skeleton cards, no stats bar
@@ -42,16 +42,42 @@ export default function SummaryPage(): React.ReactElement {
   }
 
   // -------------------------------------------------------------------------
-  // Error state — component-level error message with retry (no full-page crash)
+  // Error state — full-page for network errors (AC8), component-level otherwise
   // -------------------------------------------------------------------------
   if (isError) {
+    // AC8: network unreachable — show full-page message
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h6" color="text.primary" gutterBottom>
+            Unable to connect to DQS. Check your network connection or try again.
+          </Typography>
+          <Typography
+            component="button"
+            type="button"
+            onClick={() => void refetch()}
+            sx={{
+              mt: 1,
+              color: 'primary.main',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              background: 'none',
+              border: 'none',
+            }}
+          >
+            Try again
+          </Typography>
+        </Box>
+      )
+    }
+    // Non-network errors — component-level error message with retry
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography color="error.main">Failed to load summary data.</Typography>
         <Typography
           component="button"
           type="button"
-          onClick={() => refetch()}
+          onClick={() => void refetch()}
           sx={{
             mt: 1,
             color: 'primary.main',
@@ -146,18 +172,21 @@ export default function SummaryPage(): React.ReactElement {
         <Grid container spacing={3}>
           {data.lobs.map((lob) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={lob.lob_id}>
-              <DatasetCard
-                lobName={lob.lob_id}
-                datasetCount={lob.dataset_count}
-                dqsScore={lob.aggregate_score ?? 0}
-                trendData={lob.trend}
-                statusCounts={{
-                  pass: lob.healthy_count,
-                  warn: lob.degraded_count,
-                  fail: lob.critical_count,
-                }}
-                onClick={() => navigate(`/lobs/${lob.lob_id}`)}
-              />
+              {/* AC2: isFetching opacity — dims cards during stale-while-revalidate refetch */}
+              <Box style={{ opacity: isFetching ? 0.5 : 1 }} sx={{ transition: 'opacity 0.2s' }}>
+                <DatasetCard
+                  lobName={lob.lob_id}
+                  datasetCount={lob.dataset_count}
+                  dqsScore={lob.aggregate_score ?? 0}
+                  trendData={lob.trend}
+                  statusCounts={{
+                    pass: lob.healthy_count,
+                    warn: lob.degraded_count,
+                    fail: lob.critical_count,
+                  }}
+                  onClick={() => navigate(`/lobs/${lob.lob_id}`)}
+                />
+              </Box>
             </Grid>
           ))}
         </Grid>

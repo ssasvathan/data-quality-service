@@ -1,5 +1,6 @@
 # generated: 2026-04-03T00:00:00
 # last_updated: 2026-04-03
+# last traceability: 4-14-loading-empty-error-states -> PASS (2026-04-03)
 # last story update: 4-9-summary-card-grid-view-level-1 -> done (2026-04-03)
 # last story update: 4-9-summary-card-grid-view-level-1 -> ready-for-dev (2026-04-03)
 # last story update: 4-8-app-layout-with-fixed-header-routing-react-query -> ready-for-dev (2026-04-03)
@@ -45,6 +46,9 @@
 
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
+# last story update: 4-14-loading-empty-error-states -> done (2026-04-03)
+# last story update: 4-14-loading-empty-error-states -> review (2026-04-03)
+# last story update: 4-14-loading-empty-error-states -> ready-for-dev (2026-04-03)
 # last story update: 4-13-global-dataset-search -> done (2026-04-03)
 # last story update: 4-13-global-dataset-search -> review (2026-04-03)
 # last story update: 4-13-global-dataset-search -> in-progress (2026-04-03)
@@ -162,7 +166,7 @@ development_status:
   4-11-datasetinfopanel-component: done
   4-12-dataset-detail-view-level-3: done
   4-13-global-dataset-search: done
-  4-14-loading-empty-error-states: backlog
+  4-14-loading-empty-error-states: done
   4-15-accessibility-viewport-polish: backlog
   epic-4-retrospective: optional
 

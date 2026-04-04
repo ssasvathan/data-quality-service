@@ -18,6 +18,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ThemeProvider } from '@mui/material/styles'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router'
+import { useSummary } from '../../src/api/queries'
 import React from 'react'
 import theme from '../../src/theme'
 import AppLayout from '../../src/layouts/AppLayout'
@@ -308,5 +309,261 @@ describe('[P0] AppLayout — rendering stability', () => {
 
   it('[P0] renders without throwing at "/datasets/test-dataset"', () => {
     expect(() => renderAppLayout('/datasets/test-dataset')).not.toThrow()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Story 4.14 — AC5: LastUpdatedIndicator in header
+//
+// RED PHASE: AppLayout does not yet have a LastUpdatedIndicator component.
+// useSummary is currently mocked to return { data: undefined, isLoading: false }.
+// These tests require useSummary to return data with a last_run_at field AND
+// AppLayout to render a LastUpdatedIndicator component that reads it.
+//
+// Implementation requirements:
+//   - Add last_run_at: string | null + run_failed: boolean to SummaryResponse in api/types.ts
+//   - Add useLastUpdated() usage (or read from useSummary directly) in AppLayout.tsx
+//   - Add LastUpdatedIndicator function component inside AppLayout.tsx
+//   - Place <LastUpdatedIndicator /> in Toolbar between AppBreadcrumbs and time range toggle
+// ---------------------------------------------------------------------------
+
+describe('[P0] AppLayout — LastUpdatedIndicator stale data amber warning (AC5, Story 4.14)', () => {
+  it('[P0] shows last_run_at in amber text when data is more than 24 hours old', () => {
+    // THIS TEST WILL FAIL — LastUpdatedIndicator does not yet exist in AppLayout
+    // Implementation: compare last_run_at timestamp to Date.now(), if >24h use color: 'warning.main'
+    // "28 hours ago" scenario: last_run_at = now - 28h (in ISO 8601)
+    const staleDate = new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString()
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: staleDate,
+        run_failed: false,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // LastUpdatedIndicator must render with relative time text
+    // Matches: "Last updated: 28 hours ago" or similar relative format
+    expect(screen.getByText(/last updated/i)).toBeInTheDocument()
+
+    // The indicator element must use MUI warning.main color (amber).
+    // MUI sx color tokens resolve to CSS custom properties — check the element's style
+    // or look for the text being associated with a warning-colored element.
+    const indicator = screen.getByText(/last updated/i)
+    // Verify it's in the header (banner landmark)
+    const header = screen.getByRole('banner')
+    expect(header).toContainElement(indicator)
+  })
+
+  it('[P0] shows last_run_at in gray (text.secondary) text when data is less than 24 hours old', () => {
+    // THIS TEST WILL FAIL — LastUpdatedIndicator does not yet exist in AppLayout
+    // "5:42 AM ET" scenario: last_run_at = now - 2h (fresh)
+    const freshDate = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: freshDate,
+        run_failed: false,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // LastUpdatedIndicator must render with relative time text
+    expect(screen.getByText(/last updated/i)).toBeInTheDocument()
+
+    // The indicator must be in the header
+    const indicator = screen.getByText(/last updated/i)
+    const header = screen.getByRole('banner')
+    expect(header).toContainElement(indicator)
+  })
+
+  it('[P1] does not render LastUpdatedIndicator when last_run_at is null', () => {
+    // THIS TEST WILL FAIL — LastUpdatedIndicator does not yet exist
+    // Graceful degradation: if last_run_at is null/missing, skip indicator entirely
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: null,
+        run_failed: false,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // When last_run_at is null, "Last updated" text must not appear
+    expect(screen.queryByText(/last updated/i)).not.toBeInTheDocument()
+  })
+
+  it('[P1] does not crash when useSummary returns no last_run_at field', () => {
+    // THIS TEST WILL FAIL — LastUpdatedIndicator does not yet exist
+    // Backward-compatibility: SummaryResponse without last_run_at field — no crash
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        // no last_run_at field
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    expect(() => renderAppLayout()).not.toThrow()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Story 4.14 — AC6: RunFailedBanner below header
+//
+// RED PHASE: AppLayout does not yet have a RunFailedBanner component.
+//
+// Implementation requirements:
+//   - Add RunFailedBanner function component inside AppLayout.tsx
+//   - Banner condition: summaryData?.run_failed === true
+//   - Render as full-width Box below AppBar (sibling to Toolbar spacer):
+//     bgcolor: 'warning.light', color: 'warning.dark', border bottom
+//   - Text: "Latest run failed at {time}. Showing results from {previous run date}."
+//   - Dismissible: local useState<boolean> — dismissed defaults false
+// ---------------------------------------------------------------------------
+
+describe('[P0] AppLayout — RunFailedBanner when latest run failed (AC6, Story 4.14)', () => {
+  it('[P0] renders yellow banner when useSummary returns run_failed=true', () => {
+    // THIS TEST WILL FAIL — RunFailedBanner does not yet exist in AppLayout
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        run_failed: true,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // Banner must be visible with run-failed message
+    expect(screen.getByText(/latest run failed/i)).toBeInTheDocument()
+  })
+
+  it('[P0] banner text includes "Showing results from" previous run reference', () => {
+    // THIS TEST WILL FAIL — RunFailedBanner does not yet exist
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        run_failed: true,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // Per UX spec: "Latest run failed at {time}. Showing results from {previous run date}."
+    expect(screen.getByText(/showing results from/i)).toBeInTheDocument()
+  })
+
+  it('[P0] clicking dismiss hides the banner', () => {
+    // THIS TEST WILL FAIL — RunFailedBanner does not yet exist
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        run_failed: true,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // Banner is visible before dismiss
+    expect(screen.getByText(/latest run failed/i)).toBeInTheDocument()
+
+    // Find and click the dismiss button/link
+    // Per Dev Notes: local useState<boolean> dismissed — clicking hides it
+    const dismissButton = screen.getByRole('button', { name: /dismiss/i })
+    fireEvent.click(dismissButton)
+
+    // Banner must no longer be in the document after dismiss
+    expect(screen.queryByText(/latest run failed/i)).not.toBeInTheDocument()
+  })
+
+  it('[P0] does not render banner when run_failed is false', () => {
+    // THIS TEST WILL FAIL — RunFailedBanner does not yet exist
+    // Guards against banner showing when run succeeded
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        last_run_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        run_failed: false,
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    renderAppLayout()
+
+    // No banner when run succeeded
+    expect(screen.queryByText(/latest run failed/i)).not.toBeInTheDocument()
+  })
+
+  it('[P1] does not render banner when useSummary returns no run_failed field', () => {
+    // THIS TEST WILL FAIL — RunFailedBanner does not yet exist
+    // Graceful degradation: missing run_failed field -> no banner
+    vi.mocked(useSummary).mockReturnValue({
+      data: {
+        total_datasets: 5,
+        healthy_count: 3,
+        degraded_count: 1,
+        critical_count: 1,
+        lobs: [],
+        // no run_failed field
+      },
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useSummary>)
+
+    expect(() => renderAppLayout()).not.toThrow()
+    // Banner must not appear when run_failed is absent/undefined
+    expect(screen.queryByText(/latest run failed/i)).not.toBeInTheDocument()
   })
 })
