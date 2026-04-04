@@ -1,5 +1,8 @@
 # generated: 2026-04-03T00:00:00
-# last_updated: 2026-04-03
+# last_updated: 2026-04-04
+# last retrospective: epic-4-retrospective -> done (2026-04-04)
+# last epic update: epic-4 -> done (2026-04-04)
+# last epic update: epic-5 -> in-progress (2026-04-04)
 # last traceability: 4-14-loading-empty-error-states -> PASS (2026-04-03)
 # last story update: 4-9-summary-card-grid-view-level-1 -> done (2026-04-03)
 # last story update: 4-9-summary-card-grid-view-level-1 -> ready-for-dev (2026-04-03)
@@ -45,7 +48,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-03T00:00:00
-last_updated: 2026-04-03
+last_updated: 2026-04-04
 # last story update: 4-15-accessibility-viewport-polish -> done (2026-04-03)
 # last atdd: 4-15-accessibility-viewport-polish -> 24 failing tests generated (2026-04-03)
 # last story update: 4-15-accessibility-viewport-polish -> ready-for-dev (2026-04-03)
@@ -155,7 +158,7 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4: Quality Dashboard & Drill-Down Reporting
-  epic-4: in-progress
+  epic-4: done
   4-1-mui-theme-design-system-foundation: done
   4-2-fastapi-summary-lob-api-endpoints: done
   4-3-fastapi-dataset-detail-metrics-api-endpoints: done
@@ -171,10 +174,10 @@ development_status:
   4-13-global-dataset-search: done
   4-14-loading-empty-error-states: done
   4-15-accessibility-viewport-polish: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 
   # Epic 5: MCP & LLM Integration
-  epic-5: backlog
+  epic-5: in-progress
   5-1-fastmcp-tool-registration-failure-query-tool: backlog
   5-2-mcp-trending-comparison-tools: backlog
   epic-5-retrospective: optional
