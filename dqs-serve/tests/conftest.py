@@ -147,6 +147,10 @@ def _make_mock_db_session() -> MagicMock:
       - GET /api/lobs → list with one LOB (200)
       - GET /api/lobs/LOB_RETAIL/datasets → first execute returns one row → 200 (route registered)
       - GET /api/lobs/NONEXISTENT/datasets → first execute returns empty → 404 (LOB not found)
+      - GET /api/datasets/9 → dataset_id=9 → fake DatasetDetail run row → 200
+      - GET /api/datasets/9999 → dataset_id=9999 → empty → 404 (unknown)
+      - GET /api/datasets/9/metrics → dataset_id=9 → first call returns run row, metric calls empty
+      - GET /api/datasets/9/trend → dataset_id=9 → first call returns run row, trend call returns point
 
     Query dispatch logic (by param keys present):
       - No params          → _LATEST_PER_DATASET_SQL or _LOBS_LATEST_SQL → fake LOB row
@@ -156,6 +160,9 @@ def _make_mock_db_session() -> MagicMock:
           - other lob_id   → fake dataset row (run_id key)
       - dataset_names      → _DATASET_TREND_BATCH_SQL → empty (no sparkline in unit tests)
       - run_ids            → _METRIC_CHECK_TYPES_BATCH_SQL → empty (no metrics in unit tests)
+      - dataset_id (≠9999) → GET /api/datasets/{id} detail/metrics/trend → fake detail run row
+      - dataset_id (=9999) → unknown dataset → empty list (triggers 404)
+      - dataset_name       → trend or previous_row_count sub-query → fake trend point
     """
     import datetime  # noqa: PLC0415
 
@@ -182,6 +189,33 @@ def _make_mock_db_session() -> MagicMock:
         "avg_score": 98.50,
     }
 
+    # Fake row for GET /api/datasets/{dataset_id} — matches DatasetDetail fields
+    # dataset_id=9 is the well-known unit-test sentinel (mirrors story dev notes)
+    _FAKE_DATASET_DETAIL_RUN_ROW = {
+        "id": 9,
+        "dataset_name": "lob=retail/src_sys_nm=alpha/dataset=sales_daily",
+        "lookup_code": "LOB_RETAIL",
+        "check_status": "PASS",
+        "dqs_score": 98.50,
+        "partition_date": datetime.date(2026, 4, 2),
+        "rerun_number": 0,
+        "orchestration_run_id": 1,
+        "error_message": None,
+        "create_date": datetime.datetime(2026, 4, 2, 6, 45, 0),
+    }
+
+    # Fake trend point for GET /api/datasets/{dataset_id}/trend
+    _FAKE_TREND_ROW = {
+        "date": datetime.date(2026, 4, 2),
+        "dqs_score": 98.50,
+    }
+
+    # Fake orchestration run row for parent_path lookup
+    _FAKE_ORCHESTRATION_RUN_ROW = {
+        "id": 1,
+        "parent_path": "lob=retail/src_sys_nm=alpha",
+    }
+
     def _execute_side_effect(query: object, params: dict | None = None) -> MagicMock:
         """Return mock results based on query parameters.
 
@@ -193,6 +227,11 @@ def _make_mock_db_session() -> MagicMock:
               - other lob_id  → fake dataset row (run_id key)
           - dataset_names     → batched dataset trend → empty (no sparkline in unit tests)
           - run_ids           → batched metric check types → empty (no metrics in unit tests)
+          - dataset_id        → GET /api/datasets/{id} queries
+              - 9999          → empty (triggers 404)
+              - other id      → fake DatasetDetail run row (200)
+          - dataset_name      → sub-queries for previous_row_count or trend → fake rows
+          - orchestration_run_id → parent_path lookup → fake orchestration row
         """
         result = MagicMock()
         rows: list = []
@@ -202,6 +241,9 @@ def _make_mock_db_session() -> MagicMock:
             dataset_names = params.get("dataset_names")
             days_back = params.get("days_back")
             lob_id = params.get("lob_id", "")
+            dataset_id = params.get("dataset_id")
+            dataset_name = params.get("dataset_name")
+            orchestration_run_id = params.get("orchestration_run_id")
 
             if run_ids is not None:
                 # Batched metric check types query — empty (no per-check metrics in unit tests)
@@ -209,13 +251,34 @@ def _make_mock_db_session() -> MagicMock:
             elif dataset_names is not None:
                 # Batched dataset trend query — empty (no sparkline data in unit tests)
                 rows = []
-            elif days_back is not None:
+            elif days_back is not None and dataset_id is None and dataset_name is None:
                 # Batched summary LOB trend query — return a fake trend row with lookup_code
                 rows = [_FAKE_SUMMARY_TREND_ROW]
+            elif dataset_id is not None:
+                # Dataset detail / metrics / trend queries by dataset_id
+                if dataset_id == 9999:
+                    # Unknown dataset — triggers 404
+                    rows = []
+                else:
+                    # Known dataset (unit test sentinel id=9)
+                    rows = [_FAKE_DATASET_DETAIL_RUN_ROW]
+            elif dataset_name is not None:
+                # Sub-queries by dataset_name:
+                #   - previous_row_count (VOLUME/row_count OFFSET 1) → empty in unit tests
+                #   - trend window query → fake trend point
+                if days_back is not None:
+                    # Trend window query
+                    rows = [_FAKE_TREND_ROW]
+                else:
+                    # previous_row_count OFFSET 1 query — return empty (None previous)
+                    rows = []
+            elif orchestration_run_id is not None:
+                # parent_path lookup from orchestration run
+                rows = [_FAKE_ORCHESTRATION_RUN_ROW]
             elif lob_id and lob_id != "NONEXISTENT":
                 # Dataset latest-for-LOB query for a known LOB
                 rows = [_FAKE_DATASET_ROW]
-            # else: NONEXISTENT lob → empty list (triggers 404)
+            # else: NONEXISTENT lob or unknown param combination → empty list
         elif params is None:
             # No params — lobs list query or summary latest-per-dataset query.
             # Return one fake LOB row so snake_case key validation tests have data.

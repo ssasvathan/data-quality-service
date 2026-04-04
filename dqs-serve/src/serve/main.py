@@ -9,6 +9,7 @@ import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from .routes import datasets as datasets_router
 from .routes import lobs as lobs_router
 from .routes import summary as summary_router
 
@@ -54,3 +55,4 @@ def health_check() -> dict[str, str]:
 
 app.include_router(summary_router.router, prefix="/api")
 app.include_router(lobs_router.router, prefix="/api")
+app.include_router(datasets_router.router, prefix="/api")

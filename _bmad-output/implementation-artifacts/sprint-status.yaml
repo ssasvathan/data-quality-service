@@ -39,7 +39,11 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-03T00:00:00
-last_updated: 2026-04-04
+last_updated: 2026-04-03
+# last story update: 4-3-fastapi-dataset-detail-metrics-api-endpoints -> done (2026-04-03)
+# last story update: 4-3-fastapi-dataset-detail-metrics-api-endpoints -> review (2026-04-03)
+# last story update: 4-3-fastapi-dataset-detail-metrics-api-endpoints -> ready-for-dev (2026-04-03)
+# last traceability: 4-3-fastapi-dataset-detail-metrics-api-endpoints -> PASS (2026-04-03)
 # last traceability: 4-2-fastapi-summary-lob-api-endpoints -> PASS (2026-04-04)
 # last story update: 4-2-fastapi-summary-lob-api-endpoints -> review (2026-04-04)
 # last story update: 4-2-fastapi-summary-lob-api-endpoints -> ready-for-dev (2026-04-03)
@@ -112,7 +116,7 @@ development_status:
   epic-4: in-progress
   4-1-mui-theme-design-system-foundation: done
   4-2-fastapi-summary-lob-api-endpoints: done
-  4-3-fastapi-dataset-detail-metrics-api-endpoints: backlog
+  4-3-fastapi-dataset-detail-metrics-api-endpoints: done
   4-4-dataset-search-api-endpoint: backlog
   4-5-reference-data-resolution-caching: backlog
   4-6-dqsscorechip-trendsparkline-components: backlog
