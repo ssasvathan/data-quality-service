@@ -1604,3 +1604,308 @@ class TestActiveRecordViewUsage:
                 f"GET {url} returned 404 with standard 'Not Found' — route not registered. "
                 "Add datasets_router to main.py with prefix='/api'."
             )
+
+
+# ---------------------------------------------------------------------------
+# Story 4.5: Reference Data Resolution & Caching — route-level acceptance tests
+#
+# TDD RED PHASE: All tests in this section are marked @pytest.mark.skip because
+# the ReferenceDataService, lob_lookup table/view, and DatasetDetail field
+# extensions do not exist yet.
+# Remove skip markers after completing Story 4.5 Tasks 1-8.
+# ---------------------------------------------------------------------------
+
+# New keys added by Story 4.5 to DatasetDetail
+EXPECTED_RESOLVED_FIELDS = {"lob_name", "owner", "classification"}
+
+# Full expected key set after Story 4.5 (adds 3 new fields to the 4.3 set)
+EXPECTED_DATASET_DETAIL_KEYS_4_5 = EXPECTED_DATASET_DETAIL_KEYS | EXPECTED_RESOLVED_FIELDS
+
+
+class TestDatasetDetailResolvedFields:
+    """Story 4.5 AC2 [P0]: DatasetDetail response must include lob_name, owner, classification.
+
+    TDD RED PHASE: DatasetDetail model does not have these fields yet.
+    Remove @pytest.mark.skip after implementing Tasks 3-8 of Story 4.5.
+    """
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_has_all_4_5_fields(self, client: TestClient) -> None:
+        """Story 4.5 AC2 [P0]: GET /api/datasets/{dataset_id} must include resolved LOB fields.
+
+        After Story 4.5 implementation, DatasetDetail gains three new snake_case
+        string fields from ReferenceDataService.resolve(lookup_code):
+          - lob_name: str      (e.g. 'Retail Banking')
+          - owner: str         (e.g. 'Jane Doe')
+          - classification: str (e.g. 'Tier 1 Critical')
+
+        Fails until:
+          1. DatasetDetail Pydantic model gains these three fields.
+          2. Route handler injects ref_svc = Depends(get_reference_data_service).
+          3. conftest.py mock_reference_data_service fixture sets app.state.reference_data.
+        """
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        actual_keys = set(body.keys())
+        missing_fields = EXPECTED_RESOLVED_FIELDS - actual_keys
+        assert not missing_fields, (
+            f"DatasetDetail response missing Story 4.5 fields: {missing_fields}. "
+            f"Got keys: {actual_keys}. "
+            "Add lob_name, owner, classification to DatasetDetail Pydantic model "
+            "and populate via ReferenceDataService.resolve()."
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_lob_name_is_string(self, client: TestClient) -> None:
+        """Story 4.5 AC2 [P0]: 'lob_name' field must be a str in the response.
+
+        resolve() always returns a str ('N/A' as fallback) — never None.
+        DatasetDetail model must declare 'lob_name: str', not 'Optional[str]'.
+        """
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        assert "lob_name" in body, (
+            "DatasetDetail response missing 'lob_name' field (Story 4.5)"
+        )
+        assert isinstance(body["lob_name"], str), (
+            f"'lob_name' must be a str, got {type(body['lob_name']).__name__} "
+            f"value={body['lob_name']!r}. ReferenceDataService.resolve() always returns str."
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_owner_is_string(self, client: TestClient) -> None:
+        """Story 4.5 AC2 [P0]: 'owner' field must be a str in the response."""
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        assert "owner" in body, "DatasetDetail response missing 'owner' field (Story 4.5)"
+        assert isinstance(body["owner"], str), (
+            f"'owner' must be a str, got {type(body['owner']).__name__} "
+            f"value={body['owner']!r}."
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_classification_is_string(self, client: TestClient) -> None:
+        """Story 4.5 AC2 [P0]: 'classification' field must be a str in the response."""
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        assert "classification" in body, (
+            "DatasetDetail response missing 'classification' field (Story 4.5)"
+        )
+        assert isinstance(body["classification"], str), (
+            f"'classification' must be a str, got {type(body['classification']).__name__} "
+            f"value={body['classification']!r}."
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_resolved_fields_not_null(self, client: TestClient) -> None:
+        """Story 4.5 AC4 [P0]: lob_name, owner, classification must never be null.
+
+        AC4 states: for unknown codes, return 'N/A' — not null, not error.
+        The mock ReferenceDataService (from conftest fixture) returns
+        LobMapping('Retail Banking', 'Jane Doe', 'Tier 1 Critical') for unit tests.
+        """
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        for field in ("lob_name", "owner", "classification"):
+            val = body.get(field)
+            assert val is not None, (
+                f"'{field}' is null in DatasetDetail response. "
+                "ReferenceDataService.resolve() must return 'N/A' for unknowns, never null. "
+                "DatasetDetail model must declare these as 'str', not 'Optional[str]'."
+            )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_mock_returns_retail_banking_for_lob_retail(
+        self, client: TestClient
+    ) -> None:
+        """Story 4.5 AC2 [P1]: Unit test mock returns resolved LOB name for known code.
+
+        The conftest.py mock_reference_data_service autouse fixture configures
+        app.state.reference_data to return LobMapping('Retail Banking', 'Jane Doe',
+        'Tier 1 Critical') when resolve() is called. This verifies that the route
+        handler actually calls resolve() and includes the result in the response.
+        """
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        # These values come from the mock_reference_data_service fixture in conftest.py
+        assert body.get("lob_name") == "Retail Banking", (
+            f"Expected lob_name='Retail Banking' from mock ReferenceDataService, "
+            f"got {body.get('lob_name')!r}. "
+            "Check that route handler calls ref_svc.resolve(row['lookup_code']) "
+            "and sets lob_name from the result."
+        )
+        assert body.get("owner") == "Jane Doe", (
+            f"Expected owner='Jane Doe' from mock, got {body.get('owner')!r}"
+        )
+        assert body.get("classification") == "Tier 1 Critical", (
+            f"Expected classification='Tier 1 Critical' from mock, "
+            f"got {body.get('classification')!r}"
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
+    )
+    def test_dataset_detail_full_key_set_after_4_5(self, client: TestClient) -> None:
+        """Story 4.5 AC2 [P1]: Full DatasetDetail key set (4.3 fields + 4.5 resolved fields).
+
+        After Story 4.5, the complete set of expected snake_case keys includes both
+        the existing 4.3 fields and the three new resolved fields from this story.
+        """
+        from serve.main import app  # noqa: PLC0415
+
+        client = TestClient(app)
+        response = client.get(DATASET_DETAIL_ENDPOINT.format(dataset_id=KNOWN_DATASET_ID))
+        assert response.status_code == 200
+
+        body = response.json()
+        actual_keys = set(body.keys())
+        missing_keys = EXPECTED_DATASET_DETAIL_KEYS_4_5 - actual_keys
+        assert not missing_keys, (
+            f"DatasetDetail response is missing fields after Story 4.5: {missing_keys}. "
+            f"Got keys: {actual_keys}."
+        )
+
+
+class TestDatasetDetailPydanticModelAfter45:
+    """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must include resolved field declarations.
+
+    TDD RED PHASE: fails until DatasetDetail model is extended (Task 6).
+    """
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification fields. Remove skip after Task 6."
+    )
+    def test_dataset_detail_model_has_lob_name_field(self) -> None:
+        """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must declare 'lob_name: str'."""
+        from serve.routes.datasets import DatasetDetail  # noqa: PLC0415
+
+        assert "lob_name" in DatasetDetail.model_fields, (
+            "DatasetDetail Pydantic model missing 'lob_name' field. "
+            "Add 'lob_name: str' to DatasetDetail in routes/datasets.py (Story 4.5 Task 6)."
+        )
+        field = DatasetDetail.model_fields["lob_name"]
+        # Should be 'str', not Optional[str]
+        import inspect  # noqa: PLC0415
+        annotation = field.annotation
+        # Allow str or string type alias
+        assert annotation is str or str(annotation) == "str", (
+            f"'lob_name' must be declared as 'str' (not Optional), got {annotation!r}. "
+            "resolve() always returns a string — never null."
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification fields. Remove skip after Task 6."
+    )
+    def test_dataset_detail_model_has_owner_field(self) -> None:
+        """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must declare 'owner: str'."""
+        from serve.routes.datasets import DatasetDetail  # noqa: PLC0415
+
+        assert "owner" in DatasetDetail.model_fields, (
+            "DatasetDetail Pydantic model missing 'owner' field. "
+            "Add 'owner: str' to DatasetDetail in routes/datasets.py (Story 4.5 Task 6)."
+        )
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
+        "lob_name, owner, or classification fields. Remove skip after Task 6."
+    )
+    def test_dataset_detail_model_has_classification_field(self) -> None:
+        """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must declare 'classification: str'."""
+        from serve.routes.datasets import DatasetDetail  # noqa: PLC0415
+
+        assert "classification" in DatasetDetail.model_fields, (
+            "DatasetDetail Pydantic model missing 'classification' field. "
+            "Add 'classification: str' to DatasetDetail in routes/datasets.py (Story 4.5 Task 6)."
+        )
+
+
+class TestLifespanAndServiceWiring:
+    """Story 4.5 AC1 [P0]: FastAPI lifespan must wire ReferenceDataService into app.state.
+
+    TDD RED PHASE: fails until main.py lifespan is implemented (Task 4).
+    """
+
+    @pytest.mark.skip(
+        reason="RED PHASE (Story 4.5): FastAPI lifespan and ReferenceDataService "
+        "are not wired into main.py yet. Remove skip after completing Tasks 3-4."
+    )
+    def test_app_has_lifespan_that_sets_reference_data_state(self) -> None:
+        """Story 4.5 AC1 [P0]: FastAPI lifespan must set app.state.reference_data on startup.
+
+        Per story dev notes:
+          @asynccontextmanager
+          async def lifespan(app):
+              svc = ReferenceDataService(db_factory=SessionLocal)
+              svc.refresh()
+              app.state.reference_data = svc
+              yield
+
+        The app must NOT use the deprecated @app.on_event('startup') pattern.
+        """
+        from serve.main import app  # noqa: PLC0415
+
+        # The lifespan is tested by verifying app.state.reference_data is set
+        # after a request (TestClient triggers the lifespan context manager)
+        with TestClient(app) as client:
+            # After TestClient startup, app.state.reference_data must exist
+            assert hasattr(app.state, "reference_data"), (
+                "app.state.reference_data not set after startup. "
+                "Add FastAPI lifespan context manager to main.py that creates "
+                "ReferenceDataService and calls refresh()."
+            )
+            from serve.services.reference_data import ReferenceDataService  # noqa: PLC0415
+            assert isinstance(app.state.reference_data, ReferenceDataService), (
+                f"app.state.reference_data must be a ReferenceDataService instance, "
+                f"got {type(app.state.reference_data).__name__}"
+            )
