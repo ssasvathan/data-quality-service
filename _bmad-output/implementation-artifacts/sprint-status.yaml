@@ -45,6 +45,10 @@
 
 generated: 2026-04-03T00:00:00
 last_updated: 2026-04-03
+# last story update: 4-13-global-dataset-search -> done (2026-04-03)
+# last story update: 4-13-global-dataset-search -> review (2026-04-03)
+# last story update: 4-13-global-dataset-search -> in-progress (2026-04-03)
+# last story update: 4-13-global-dataset-search -> ready-for-dev (2026-04-03)
 # last story update: 4-12-dataset-detail-view-level-3 -> done (2026-04-03)
 # last story update: 4-12-dataset-detail-view-level-3 -> review (2026-04-03)
 # last story update: 4-12-dataset-detail-view-level-3 -> in-progress (2026-04-03)
@@ -157,7 +161,7 @@ development_status:
   4-10-lob-detail-view-level-2: done
   4-11-datasetinfopanel-component: done
   4-12-dataset-detail-view-level-3: done
-  4-13-global-dataset-search: backlog
+  4-13-global-dataset-search: done
   4-14-loading-empty-error-states: backlog
   4-15-accessibility-viewport-polish: backlog
   epic-4-retrospective: optional

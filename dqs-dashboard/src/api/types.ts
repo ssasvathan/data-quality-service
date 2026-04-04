@@ -152,5 +152,25 @@ export interface DatasetTrendResponse {
   trend: TrendPoint[]
 }
 
+/**
+ * SearchResult — a single result from GET /api/search?q=...
+ * Mirrors the Python Pydantic SearchResult model in dqs-serve/src/serve/routes/search.py.
+ */
+export interface SearchResult {
+  dataset_id: number
+  dataset_name: string
+  lob_id: string | null
+  dqs_score: number | null
+  check_status: 'PASS' | 'WARN' | 'FAIL' | null
+}
+
+/**
+ * SearchResponse — shape returned by GET /api/search?q=...
+ * Always returns an object with results array (never 404, never null).
+ */
+export interface SearchResponse {
+  results: SearchResult[]
+}
+
 // Re-export TimeRange type for convenience
 export type { TimeRange } from '../context/TimeRangeContext'

@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from './client'
-import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail, DatasetMetricsResponse, DatasetTrendResponse } from './types'
+import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail, DatasetMetricsResponse, DatasetTrendResponse, SearchResponse } from './types'
 import type { TimeRange } from '../context/TimeRangeContext'
 
 export function useLobs(timeRange: TimeRange = '7d') {
@@ -90,5 +90,20 @@ export function useDatasetTrend(datasetId: string | undefined, timeRange: TimeRa
     queryKey: ['datasetTrend', datasetId, timeRange],
     queryFn: () => apiFetch<DatasetTrendResponse>(`/datasets/${datasetId}/trend?time_range=${timeRange}`),
     enabled: !!datasetId,
+  })
+}
+
+/**
+ * useSearch — fetches GET /api/search?q={query}.
+ * Enabled only when query has 2+ characters (AC1).
+ * Results cached for 30s to avoid redundant refetch on same query (staleTime: 30_000).
+ * filterOptions is handled server-side — the API orders prefix before substring.
+ */
+export function useSearch(query: string) {
+  return useQuery<SearchResponse>({
+    queryKey: ['search', query],
+    queryFn: () => apiFetch<SearchResponse>(`/search?q=${encodeURIComponent(query)}`),
+    enabled: query.length >= 2,
+    staleTime: 30_000,
   })
 }

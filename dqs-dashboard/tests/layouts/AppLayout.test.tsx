@@ -13,7 +13,7 @@
  * @testing-framework Vitest + React Testing Library + MUI ThemeProvider
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ThemeProvider } from '@mui/material/styles'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -22,6 +22,48 @@ import React from 'react'
 import theme from '../../src/theme'
 import AppLayout from '../../src/layouts/AppLayout'
 import { TimeRangeProvider } from '../../src/context/TimeRangeContext'
+
+// ---------------------------------------------------------------------------
+// Mock useSearch and all existing hooks so GlobalSearch renders without errors.
+// useSearch is introduced in Story 4.13 — mocked here so tests control data.
+// Existing hooks mocked to return idle state so existing AppLayout behaviour holds.
+// ---------------------------------------------------------------------------
+
+vi.mock('../../src/api/queries', () => ({
+  useSearch: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useLobs: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useDatasets: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useSummary: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useLobDatasets: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useDatasetDetail: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useDatasetMetrics: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+  useDatasetTrend: vi.fn().mockReturnValue({ data: undefined, isLoading: false }),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock DqsScoreChip to avoid Recharts / canvas issues in jsdom.
+// ---------------------------------------------------------------------------
+
+vi.mock('../../src/components', () => ({
+  DqsScoreChip: ({ score }: { score?: number }) => (
+    <span data-testid="dqs-score-chip">{score !== undefined ? score : '—'}</span>
+  ),
+  TrendSparkline: vi.fn(() => null),
+  DatasetCard: vi.fn(() => null),
+  DatasetInfoPanel: vi.fn(() => null),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock useNavigate so navigation assertions can be tested without a real router.
+// ---------------------------------------------------------------------------
+
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>()
+  return {
+    ...actual,
+    useNavigate: vi.fn(() => vi.fn()),
+  }
+})
 
 // ---------------------------------------------------------------------------
 // Render helper — wraps AppLayout with all required providers.

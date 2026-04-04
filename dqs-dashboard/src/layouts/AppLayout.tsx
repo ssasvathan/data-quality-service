@@ -9,7 +9,7 @@
  * AC6: Hidden skip link visible on Tab focus
  */
 
-import React from 'react'
+import React, { useState, useRef, useEffect, useDeferredValue } from 'react'
 import type { ReactNode } from 'react'
 import {
   AppBar,
@@ -21,11 +21,17 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   TextField,
+  Autocomplete,
+  InputAdornment,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { useLocation, useParams, useSearchParams, Link as RouterLink } from 'react-router'
+import { useLocation, useParams, useSearchParams, Link as RouterLink, useNavigate } from 'react-router'
+import SearchIcon from '@mui/icons-material/Search'
 import { useTimeRange } from '../context/TimeRangeContext'
 import type { TimeRange } from '../context/TimeRangeContext'
+import { useSearch } from '../api/queries'
+import type { SearchResult } from '../api/types'
+import { DqsScoreChip } from '../components'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -110,6 +116,115 @@ function AppBreadcrumbs() {
   )
 }
 
+/**
+ * GlobalSearch — Autocomplete search bar in the AppBar header.
+ * AC1: Shows dropdown after 2+ characters with DqsScoreChip + dataset name + LOB.
+ * AC2: Escape closes the dropdown (MUI Autocomplete handles natively).
+ * AC3: Selecting a result navigates to /datasets/{dataset_id}.
+ * AC4: Ctrl+K (or Cmd+K on Mac) focuses the search input.
+ * AC5: Shows "No datasets matching '{query}'" when no results.
+ */
+function GlobalSearch() {
+  const [inputValue, setInputValue] = useState('')
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
+  const deferredQuery = useDeferredValue(inputValue)
+  // Only pass a non-empty query when 2+ chars — hook's enabled guard also enforces this,
+  // but passing empty string when < 2 chars keeps the call to useSearch consistent.
+  const searchQuery = deferredQuery.length >= 2 ? deferredQuery : ''
+  const { data, isError } = useSearch(searchQuery)
+  const options: SearchResult[] = isError ? [] : (data?.results ?? [])
+
+  // Ctrl+K / Cmd+K keyboard shortcut to focus search input (AC4)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        // Focus the input — the dropdown opens naturally when the user types 2+ chars.
+        // Avoid calling setOpen(true) here: the handler closes over the initial empty
+        // inputValue (stale closure with [] dep array) and opening an empty dropdown
+        // shows "Type to search" which is not useful.
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  return (
+    <Autocomplete<SearchResult, false, false, false>
+      disableClearable
+      open={open}
+      onOpen={() => inputValue.length >= 2 && setOpen(true)}
+      onClose={() => setOpen(false)}
+      options={options}
+      getOptionLabel={(option) => option.dataset_name}
+      filterOptions={(x) => x}
+      inputValue={inputValue}
+      onInputChange={(_, value, reason) => {
+        // Ignore 'reset' reason — fired after onChange when option is selected.
+        // We handle input clearing in onChange to keep state consistent.
+        if (reason === 'reset') return
+        setInputValue(value)
+        setOpen(value.length >= 2)
+      }}
+      onChange={(_, value) => {
+        if (value) {
+          navigate(`/datasets/${value.dataset_id}`)
+          setInputValue('')
+          setOpen(false)
+        }
+      }}
+      noOptionsText={
+        isError
+          ? 'Search unavailable — please try again'
+          : inputValue.length >= 2
+          ? `No datasets matching '${inputValue}'`
+          : 'Type to search'
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          size="small"
+          placeholder="Search datasets... (Ctrl+K)"
+          inputRef={inputRef}
+          InputProps={{
+            ...params.InputProps,
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ ml: 2, width: 280 }}
+        />
+      )}
+      renderOption={(props, option) => {
+        const { key, ...optionProps } = props
+        return (
+          <Box
+            component="li"
+            key={key}
+            {...optionProps}
+            sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}
+          >
+            <DqsScoreChip score={option.dqs_score ?? undefined} size="sm" showTrend={false} />
+            <Typography variant="mono" sx={{ flex: 1 }} noWrap>
+              {option.dataset_name}
+            </Typography>
+            {option.lob_id && (
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {option.lob_id}
+              </Typography>
+            )}
+          </Box>
+        )
+      }}
+    />
+  )
+}
+
 export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme()
   const { timeRange, setTimeRange } = useTimeRange()
@@ -181,12 +296,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <ToggleButton value="90d">90d</ToggleButton>
           </ToggleButtonGroup>
 
-          {/* Search bar placeholder (AC1) — full implementation in Story 4.13 */}
-          <TextField
-            size="small"
-            placeholder="Search datasets... (Ctrl+K)"
-            sx={{ ml: 2, width: 240 }}
-          />
+          {/* GlobalSearch — full Autocomplete implementation (Story 4.13) */}
+          <GlobalSearch />
         </Toolbar>
       </AppBar>
 
