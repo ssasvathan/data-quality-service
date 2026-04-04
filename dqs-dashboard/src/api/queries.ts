@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from './client'
-import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail } from './types'
+import type { LobDetail, DatasetSummary, SummaryResponse, LobDatasetsResponse, DatasetDetail, DatasetMetricsResponse, DatasetTrendResponse } from './types'
 import type { TimeRange } from '../context/TimeRangeContext'
 
 export function useLobs(timeRange: TimeRange = '7d') {
@@ -65,6 +65,30 @@ export function useDatasetDetail(datasetId: string | undefined) {
   return useQuery<DatasetDetail>({
     queryKey: ['datasetDetail', datasetId],
     queryFn: () => apiFetch<DatasetDetail>(`/datasets/${datasetId}`),
+    enabled: !!datasetId,
+  })
+}
+
+/**
+ * useDatasetMetrics — fetches GET /api/datasets/{datasetId}/metrics.
+ * NOT time-range parameterized — metrics are per run/partition record.
+ */
+export function useDatasetMetrics(datasetId: string | undefined) {
+  return useQuery<DatasetMetricsResponse>({
+    queryKey: ['datasetMetrics', datasetId],
+    queryFn: () => apiFetch<DatasetMetricsResponse>(`/datasets/${datasetId}/metrics`),
+    enabled: !!datasetId,
+  })
+}
+
+/**
+ * useDatasetTrend — fetches GET /api/datasets/{datasetId}/trend?time_range={timeRange}.
+ * Time-range parameterized — trend window changes with global time range toggle.
+ */
+export function useDatasetTrend(datasetId: string | undefined, timeRange: TimeRange) {
+  return useQuery<DatasetTrendResponse>({
+    queryKey: ['datasetTrend', datasetId, timeRange],
+    queryFn: () => apiFetch<DatasetTrendResponse>(`/datasets/${datasetId}/trend?time_range=${timeRange}`),
     enabled: !!datasetId,
   })
 }

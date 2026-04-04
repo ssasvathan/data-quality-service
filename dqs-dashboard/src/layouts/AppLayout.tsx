@@ -23,7 +23,7 @@ import {
   TextField,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { useLocation, useParams, Link as RouterLink } from 'react-router'
+import { useLocation, useParams, useSearchParams, Link as RouterLink } from 'react-router'
 import { useTimeRange } from '../context/TimeRangeContext'
 import type { TimeRange } from '../context/TimeRangeContext'
 
@@ -45,15 +45,19 @@ function AppBreadcrumbs() {
     lobId?: string
     datasetId?: string
   }>()
+  const [searchParams] = useSearchParams()
 
   const { pathname } = location
 
   // Derive IDs from pathname segments as a fallback when route params aren't populated
   // e.g. /lobs/consumer-banking -> lobId = 'consumer-banking'
   const lobMatch = pathname.match(/^\/lobs\/(.+)$/)
-  const datasetMatch = pathname.match(/^\/datasets\/(.+)$/)
+  const datasetMatch = pathname.match(/^\/datasets\/([^?]+)/)
   const lobId = paramLobId ?? lobMatch?.[1]
   const datasetId = paramDatasetId ?? datasetMatch?.[1]
+
+  // lobId search param — passed by LobDetailPage when navigating to dataset detail
+  const lobIdParam = searchParams.get('lobId')
 
   // Summary (root or /summary) — plain text, not clickable
   if (pathname === '/' || pathname === '/summary') {
@@ -76,13 +80,23 @@ function AppBreadcrumbs() {
     )
   }
 
-  // Dataset detail — Summary link > Dataset ID as plain text
+  // Dataset detail — Summary link > LOB link (when lobIdParam present) > Dataset ID
   if (datasetId) {
     return (
       <Breadcrumbs aria-label="breadcrumb">
         <Link component={RouterLink} to="/summary" underline="hover" color="inherit">
           Summary
         </Link>
+        {lobIdParam && (
+          <Link
+            component={RouterLink}
+            to={`/lobs/${lobIdParam}`}
+            underline="hover"
+            color="inherit"
+          >
+            {lobIdParam}
+          </Link>
+        )}
         <Typography color="text.primary">{datasetId}</Typography>
       </Breadcrumbs>
     )

@@ -101,5 +101,56 @@ export interface DatasetDetail {
   error_message: string | null
 }
 
+/**
+ * CheckMetric — a single numeric metric from a check result.
+ */
+export interface CheckMetric {
+  metric_name: string
+  metric_value: number
+}
+
+/**
+ * CheckDetailMetric — a single detail metric from a check result.
+ */
+export interface CheckDetailMetric {
+  detail_type: string
+  detail_value: unknown
+}
+
+/**
+ * CheckResult — one check group in the dataset metrics response.
+ */
+export interface CheckResult {
+  check_type: string
+  status: 'PASS' | 'WARN' | 'FAIL' | null
+  numeric_metrics: CheckMetric[]
+  detail_metrics: CheckDetailMetric[]
+}
+
+/**
+ * DatasetMetricsResponse — shape returned by GET /api/datasets/{dataset_id}/metrics.
+ */
+export interface DatasetMetricsResponse {
+  dataset_id: number
+  check_results: CheckResult[]
+}
+
+/**
+ * TrendPoint — a single data point in the dataset trend response.
+ */
+export interface TrendPoint {
+  date: string
+  dqs_score: number
+}
+
+/**
+ * DatasetTrendResponse — shape returned by GET /api/datasets/{dataset_id}/trend.
+ */
+export interface DatasetTrendResponse {
+  dataset_id: number
+  time_range: string
+  trend: TrendPoint[]
+}
+
 // Re-export TimeRange type for convenience
 export type { TimeRange } from '../context/TimeRangeContext'

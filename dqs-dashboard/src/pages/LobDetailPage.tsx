@@ -221,7 +221,7 @@ export default function LobDetailPage(): React.ReactElement {
 
   // ----- Row click handler -----
   const handleRowClick = (params: GridRowParams<DatasetInLob>): void => {
-    navigate(`/datasets/${params.row.dataset_id}`)
+    navigate(`/datasets/${params.row.dataset_id}?lobId=${lobId ?? ''}`)
   }
 
   return (
