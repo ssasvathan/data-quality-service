@@ -27,3 +27,7 @@ Items deferred during code reviews, noted here for future sprint planning.
 ## Deferred from: code review of 6-1-sla-countdown-check (2026-04-04)
 
 - `ZoneId.systemDefault()` timezone portability — `SlaCountdownCheck` computes partition-date midnight using `context.getPartitionDate().atStartOfDay(ZoneId.systemDefault())`. If the Spark cluster JVM timezone differs from the expected Eastern timezone, the elapsed-hours calculation will shift. Pre-existing design decision explicitly specified in story 6.1 spec. Consider switching to a named zone (`ZoneId.of("America/New_York")`) in a future hardening story once the cluster timezone policy is confirmed.
+
+## Deferred from: code review of 6-5-timestamp-sanity-check (2026-04-04)
+
+- Column names containing `.` or spaces create ambiguous metric name keys — the `future_pct.<columnName>` and `stale_pct.<columnName>` metric naming pattern (also used by `DistributionCheck`) is ambiguous when a column name contains a `.` character (e.g., `event.ts` → `future_pct.event.ts`). Pre-existing pattern inherited from DistributionCheck; downstream DB uniqueness constraints are unaffected but metric name parsing by dotted-path splitting would be incorrect. Consider quoting or escaping column names in metric keys when non-alphanumeric column names are encountered.

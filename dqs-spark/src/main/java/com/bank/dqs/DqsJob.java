@@ -10,6 +10,7 @@ import com.bank.dqs.checks.OpsCheck;
 import com.bank.dqs.checks.SchemaCheck;
 import com.bank.dqs.checks.SlaCountdownCheck;
 import com.bank.dqs.checks.VolumeCheck;
+import com.bank.dqs.checks.TimestampSanityCheck;
 import com.bank.dqs.checks.ZeroRowCheck;
 import com.bank.dqs.model.DatasetContext;
 import com.bank.dqs.model.DqMetric;
@@ -303,7 +304,7 @@ public class DqsJob {
      *
      * <p>Tier 1 checks: {@link FreshnessCheck}, {@link VolumeCheck}, {@link SchemaCheck},
      * {@link OpsCheck}. Tier 2 checks: {@link SlaCountdownCheck}, {@link ZeroRowCheck},
-     * {@link BreakingChangeCheck}, {@link DistributionCheck}.
+     * {@link BreakingChangeCheck}, {@link DistributionCheck}, {@link TimestampSanityCheck}.
      *
      * <p>{@link DqsScoreCheck} is registered LAST — it reads from the {@code accumulator}
      * list which is populated by the other checks during the same dataset's run.
@@ -321,7 +322,8 @@ public class DqsJob {
         // TODO: wire JdbcSlaProvider via ConnectionProvider once JDBC connection threading is resolved
         f.register(new ZeroRowCheck());        // Tier 2 — Epic 6, Story 6.2
         f.register(new BreakingChangeCheck()); // Tier 2 — Epic 6, Story 6.3
-        f.register(new DistributionCheck());   // Tier 2 — Epic 6, Story 6.4
+        f.register(new DistributionCheck());        // Tier 2 — Epic 6, Story 6.4
+        f.register(new TimestampSanityCheck());     // Tier 2 — Epic 6, Story 6.5
         // DqsScoreCheck is registered LAST — always runs after all other checks
         // Lambda captures the accumulator list: reads prior check results for score computation
         f.register(new DqsScoreCheck(ctx -> accumulator));
