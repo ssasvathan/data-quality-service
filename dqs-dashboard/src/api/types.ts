@@ -7,12 +7,42 @@ export interface HealthResponse {
   status: string
 }
 
-export interface LobSummary {
-  lob_id: number
-  lob_name: string
-  dqs_score: number
+/**
+ * LobDetail — shape returned by GET /api/lobs (no trend field).
+ * Used by useLobs() for the LOB listing endpoint.
+ */
+export interface LobDetail {
+  lob_id: string
   dataset_count: number
-  last_run_date: string
+  aggregate_score: number | null
+  healthy_count: number
+  degraded_count: number
+  critical_count: number
+}
+
+/**
+ * LobSummaryItem — shape returned per-LOB inside GET /api/summary response.
+ * Includes trend array for sparkline rendering.
+ */
+export interface LobSummaryItem {
+  lob_id: string
+  dataset_count: number
+  aggregate_score: number | null
+  healthy_count: number
+  degraded_count: number
+  critical_count: number
+  trend: number[]
+}
+
+/**
+ * SummaryResponse — shape returned by GET /api/summary.
+ */
+export interface SummaryResponse {
+  total_datasets: number
+  healthy_count: number
+  degraded_count: number
+  critical_count: number
+  lobs: LobSummaryItem[]
 }
 
 export interface DatasetSummary {
