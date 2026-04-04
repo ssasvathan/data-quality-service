@@ -19,3 +19,7 @@ Items deferred during code reviews, noted here for future sprint planning.
 
 - `getDqsColor` and `getDqsColorLight` have no guard for invalid inputs (`NaN`, `Infinity`, negative scores) — return error color by default. No AC requirement for input validation; consumer components should validate scores before calling. Consider adding guards when score sourcing is finalized in Story 4.6 (DqsScoreChip).
 - `fontFamilySans` and `fontFamilyMono` constants in `theme.ts` are not exported — downstream components needing direct font stack references must use `theme.typography.fontFamily` or repeat the string. Not yet a problem; revisit if Story 4.11/4.12 require inline monospace outside of MUI Typography.
+
+## Deferred from: code review of 5-2-mcp-trending-comparison-tools (2026-04-04)
+
+- `_CHECK_TYPES_SQL` in `dqs-serve/src/serve/mcp/tools.py` (line 91) joins `v_dq_metric_numeric_active` using `m.run_id` but the actual view/table column is `dq_run_id`. This pre-existing Story 5.1 bug means `query_failures` will silently return no check types for failed datasets at runtime. Fix in a follow-up patch: change `m.run_id = r.id` to `m.dq_run_id = r.id` in `_CHECK_TYPES_SQL`.

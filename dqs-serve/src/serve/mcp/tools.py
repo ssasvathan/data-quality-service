@@ -22,6 +22,38 @@ from sqlalchemy.orm import Session
 
 from ..db.session import get_db
 
+# ---------------------------------------------------------------------------
+# Time range helpers — duplicated here to keep MCP tools module independent
+# ---------------------------------------------------------------------------
+
+_TIME_RANGE_DAYS: dict[str, int] = {"7d": 7, "30d": 30, "90d": 90}
+
+
+def _parse_time_range(time_range: str) -> int:
+    """Return number of days for the given time_range string (default 7)."""
+    return _TIME_RANGE_DAYS.get(time_range, 7)
+
+
+def _normalize_time_range(time_range: str) -> str:
+    """Return the canonical time_range string, defaulting to '7d' for unrecognised values."""
+    return time_range if time_range in _TIME_RANGE_DAYS else "7d"
+
+
+def _compute_trend_direction(scores: list[float]) -> str:
+    """Compute trend direction from chronological score history.
+
+    Returns 'improving', 'degrading', or 'stable' based on delta between
+    first and last score. Threshold of 2.0 points is appropriate for 0-100 DQS scores.
+    """
+    if len(scores) < 2:
+        return "stable"
+    delta = scores[-1] - scores[0]
+    if delta > 2.0:
+        return "improving"
+    if delta < -2.0:
+        return "degrading"
+    return "stable"
+
 logger = logging.getLogger(__name__)
 
 mcp: FastMCP = FastMCP("dqs")
@@ -65,6 +97,92 @@ _CHECK_TYPES_SQL = text(
     WHERE r.partition_date = :latest_date
       AND r.check_status = 'FAIL'
     ORDER BY r.dataset_name, m.check_type
+    """
+)
+
+# ---------------------------------------------------------------------------
+# SQL for story 5.2 tools — active-record views only, never raw tables
+# ---------------------------------------------------------------------------
+
+_TREND_DATASET_SEARCH_SQL = text(
+    """
+    WITH ranked AS (
+        SELECT
+            id,
+            dataset_name,
+            lookup_code,
+            check_status,
+            dqs_score,
+            partition_date,
+            ROW_NUMBER() OVER (
+                PARTITION BY dataset_name
+                ORDER BY partition_date DESC
+            ) AS rn
+        FROM v_dq_run_active
+        WHERE dataset_name ILIKE '%' || :q || '%'
+    )
+    SELECT id, dataset_name, lookup_code, check_status, dqs_score, partition_date
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY dataset_name
+    LIMIT 1
+    """
+)
+
+_TREND_HISTORY_SQL = text(
+    """
+    WITH ds_max AS (
+        SELECT MAX(partition_date) AS max_date
+        FROM v_dq_run_active
+        WHERE dataset_name = :dataset_name
+    )
+    SELECT
+        DATE(v.partition_date) AS date,
+        AVG(v.dqs_score) AS dqs_score
+    FROM v_dq_run_active v, ds_max m
+    WHERE v.dataset_name = :dataset_name
+      AND v.partition_date >= m.max_date - CAST(:days_back AS INTEGER) * INTERVAL '1 day'
+    GROUP BY DATE(v.partition_date)
+    ORDER BY date ASC
+    """
+)
+
+_FAILING_CHECKS_FOR_RUN_SQL = text(
+    """
+    SELECT DISTINCT m.check_type
+    FROM v_dq_metric_numeric_active m
+    WHERE m.dq_run_id = :run_id
+    ORDER BY m.check_type
+    """
+)
+
+_LOB_LATEST_PER_DATASET_SQL = text(
+    """
+    WITH ranked AS (
+        SELECT
+            id AS run_id,
+            dataset_name,
+            lookup_code,
+            check_status,
+            dqs_score,
+            ROW_NUMBER() OVER (
+                PARTITION BY dataset_name
+                ORDER BY partition_date DESC
+            ) AS rn
+        FROM v_dq_run_active
+        WHERE lookup_code IS NOT NULL
+    )
+    SELECT run_id, dataset_name, lookup_code, check_status, dqs_score
+    FROM ranked
+    WHERE rn = 1
+    """
+)
+
+_LOB_CHECK_TYPES_BATCH_SQL = text(
+    """
+    SELECT DISTINCT dq_run_id, check_type
+    FROM v_dq_metric_numeric_active
+    WHERE dq_run_id = ANY(:run_ids)
     """
 )
 
@@ -171,5 +289,191 @@ def query_failures(
     # Remove trailing blank line
     if lines and lines[-1] == "":
         lines.pop()
+
+    return "\n".join(lines)
+
+
+@mcp.tool(exclude_args=["db"])
+def query_dataset_trend(
+    dataset_name: str,
+    time_range: str = "7d",
+    db: Session = Depends(get_db),
+) -> str:
+    """Show DQS score trend for a dataset over a time window.
+
+    Use for queries like 'Show trending for dataset X' or 'How has dataset Y been performing?'
+    Returns current DQS score, trend direction (improving/degrading/stable), score history
+    over the requested period, and any flagged check types for the latest run.
+
+    Args:
+        dataset_name: Partial or full dataset name to search for (case-insensitive ILIKE).
+        time_range: Time window for trend history. One of '7d', '30d', '90d'. Default '7d'.
+
+    Returns:
+        Plain text trend summary suitable for LLM consumption, or a not-found message
+        if no dataset matches the search query.
+    """
+    logger.debug("query_dataset_trend called with dataset_name=%r, time_range=%r", dataset_name, time_range)
+
+    # Step 1: Search for dataset by partial name using ILIKE
+    try:
+        matched_row = db.execute(_TREND_DATASET_SEARCH_SQL, {"q": dataset_name}).mappings().first()
+    except Exception:
+        logger.error("query_dataset_trend: DB error during dataset search", exc_info=True)
+        return "Error querying DQS data. Please try again later."
+
+    # Step 2: If no match → return not-found message (AC3)
+    if matched_row is None:
+        return f"No dataset found matching '{dataset_name}'."
+
+    matched_dataset_name: str = matched_row["dataset_name"]
+    current_score: float = matched_row["dqs_score"]
+    check_status: str = matched_row["check_status"]
+    partition_date = matched_row["partition_date"]
+    run_id = matched_row["id"]
+
+    # Step 3 + 4: Get trend history using the ds_max CTE pattern
+    canonical_time_range: str = _normalize_time_range(time_range)
+    days: int = _parse_time_range(time_range)
+    days_back: int = days - 1
+
+    try:
+        trend_rows = db.execute(
+            _TREND_HISTORY_SQL,
+            {"dataset_name": matched_dataset_name, "days_back": days_back},
+        ).mappings().all()
+    except Exception:
+        logger.error("query_dataset_trend: DB error fetching trend history", exc_info=True)
+        return "Error querying DQS data. Please try again later."
+
+    # Step 5: Compute trend direction from score history
+    score_history: list[float] = [float(r["dqs_score"]) for r in trend_rows]
+    trend_direction: str = _compute_trend_direction(score_history)
+
+    # Step 6: Get flagged check types for latest run (only for non-PASS runs)
+    flagged_checks: list[str] = []
+    if check_status != "PASS":
+        try:
+            check_rows = db.execute(_FAILING_CHECKS_FOR_RUN_SQL, {"run_id": run_id}).mappings().all()
+            flagged_checks = [r["check_type"] for r in check_rows]
+        except Exception:
+            logger.error("query_dataset_trend: DB error fetching flagged checks", exc_info=True)
+            return "Error querying DQS data. Please try again later."
+
+    # Format response as LLM-optimised plain text
+    lines: list[str] = [
+        f"DQS Trend \u2014 dataset: {matched_dataset_name} ({canonical_time_range})",
+        f"Current Score: {current_score:.2f} | Status: {check_status} | Date: {partition_date}",
+        f"Trend: {trend_direction}",
+        "",
+        "Score History (oldest \u2192 newest):",
+    ]
+
+    for r in trend_rows:
+        score_val = float(r["dqs_score"])
+        lines.append(f"  {r['date']}: {score_val:.2f}")
+
+    lines.append("")
+    flagged_str = ", ".join(flagged_checks) if flagged_checks else "None"
+    lines.append(f"Flagged Checks: {flagged_str}")
+
+    return "\n".join(lines)
+
+
+@mcp.tool(exclude_args=["db"])
+def compare_lob_quality(
+    db: Session = Depends(get_db),
+) -> str:
+    """Compare data quality across all Lines of Business (LOBs) ranked by DQS score.
+
+    Use for queries like 'Which LOB has worst quality?' or 'Compare LOB quality' or
+    'Show me the quality ranking of all lines of business.'
+    Returns LOBs ranked from worst to best by aggregate DQS score, with dataset counts,
+    failing dataset counts, and top failing check types per LOB.
+
+    Returns:
+        Plain text LOB quality comparison suitable for LLM consumption, or a no-data message
+        if no LOB data is available.
+    """
+    logger.debug("compare_lob_quality called")
+
+    # Step 1: Fetch latest run per dataset using ROW_NUMBER() CTE
+    try:
+        lob_dataset_rows = db.execute(_LOB_LATEST_PER_DATASET_SQL).mappings().all()
+    except Exception:
+        logger.error("compare_lob_quality: DB error fetching LOB dataset rows", exc_info=True)
+        return "Error querying DQS data. Please try again later."
+
+    # No data case
+    if not lob_dataset_rows:
+        return "No LOB quality data available."
+
+    # Step 2: Group by lookup_code, compute aggregate score, dataset count, FAIL count
+    lob_scores: dict[str, list[float]] = defaultdict(list)
+    lob_fail_counts: dict[str, int] = defaultdict(int)
+    lob_dataset_counts: dict[str, int] = defaultdict(int)
+
+    for row in lob_dataset_rows:
+        lob_code: str = row["lookup_code"]
+        lob_scores[lob_code].append(float(row["dqs_score"]))
+        lob_dataset_counts[lob_code] += 1
+        if row["check_status"] == "FAIL":
+            lob_fail_counts[lob_code] += 1
+
+    # Step 3: Get top failing check types per LOB from FAIL runs only
+    fail_run_ids: list[int] = [
+        row["run_id"] for row in lob_dataset_rows if row["check_status"] == "FAIL"
+    ]
+
+    # Map run_id → lob_code for attribution
+    run_id_to_lob: dict[int, str] = {
+        row["run_id"]: row["lookup_code"]
+        for row in lob_dataset_rows
+        if row["check_status"] == "FAIL"
+    }
+
+    lob_check_types: dict[str, set[str]] = defaultdict(set)
+
+    if fail_run_ids:
+        try:
+            check_type_rows = db.execute(
+                _LOB_CHECK_TYPES_BATCH_SQL,
+                {"run_ids": fail_run_ids},
+            ).mappings().all()
+            for ct_row in check_type_rows:
+                run_id_val = ct_row["dq_run_id"]
+                lob_code_for_run = run_id_to_lob.get(run_id_val)
+                if lob_code_for_run:
+                    lob_check_types[lob_code_for_run].add(ct_row["check_type"])
+        except Exception:
+            logger.error("compare_lob_quality: DB error fetching check types", exc_info=True)
+            return "Error querying DQS data. Please try again later."
+
+    # Step 4: Rank LOBs by aggregate score ascending (worst first)
+    lob_aggregate_scores: list[tuple[str, float]] = [
+        (lob_code, sum(scores) / len(scores))
+        for lob_code, scores in lob_scores.items()
+    ]
+    lob_aggregate_scores.sort(key=lambda x: x[1])
+
+    # Build response
+    lines: list[str] = [
+        "LOB Quality Comparison \u2014 All LOBs (worst to best)",
+        "",
+    ]
+
+    for rank, (lob_code, avg_score) in enumerate(lob_aggregate_scores, start=1):
+        dataset_count = lob_dataset_counts[lob_code]
+        fail_count = lob_fail_counts[lob_code]
+        check_types_for_lob = sorted(lob_check_types.get(lob_code, set()))
+
+        line = (
+            f"{rank}. {lob_code} \u2014 Score: {avg_score:.2f} | "
+            f"{dataset_count} datasets | {fail_count} failing"
+        )
+        lines.append(line)
+
+        if check_types_for_lob:
+            lines.append(f"   Top failing checks: {', '.join(check_types_for_lob)}")
 
     return "\n".join(lines)
