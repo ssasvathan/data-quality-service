@@ -1,3 +1,6 @@
+# last retrospective: epic-6-retrospective -> done (2026-04-04)
+# last epic update: epic-6 -> done (2026-04-04)
+# last epic update: epic-7 -> in-progress (2026-04-04)
 # last story update: 6-4-distribution-checks-with-eventattribute-explosion -> done (2026-04-04)
 # generated: 2026-04-03T00:00:00
 # last_updated: 2026-04-04
@@ -54,7 +57,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-03T00:00:00
-last_updated: 2026-04-04 (epic-5 closed, epic-6 opened; 6-1-sla-countdown-check done; 6-2-zero-row-check done; 6-3-breaking-change-check done; 6-4-distribution-checks-with-eventattribute-explosion done; 6-5-timestamp-sanity-check done)
+last_updated: 2026-04-04 (epic-6 closed, epic-7 opened; epic-6-retrospective done; all 5 Tier 2 checks delivered: SlaCountdown, ZeroRow, BreakingChange, Distribution, TimestampSanity)
 # last story update: 6-5-timestamp-sanity-check -> done (2026-04-04)
 # last story update: 6-1-sla-countdown-check -> ready-for-dev (2026-04-04)
 # last story update: 5-2-mcp-trending-comparison-tools -> done (2026-04-04)
@@ -199,16 +202,16 @@ development_status:
   epic-5-retrospective: done
 
   # Epic 6: Tier 2 Quality Checks (Phase 2)
-  epic-6: in-progress
+  epic-6: done
   6-1-sla-countdown-check: done
   6-2-zero-row-check: done
   6-3-breaking-change-check: done
   6-4-distribution-checks-with-eventattribute-explosion: done
   6-5-timestamp-sanity-check: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
 
   # Epic 7: Tier 3 Intelligence & Executive Reporting (Phase 3)
-  epic-7: backlog
+  epic-7: in-progress
   7-1-classification-weighted-alerting-source-system-health: backlog
   7-2-correlation-inferred-sla-checks: backlog
   7-3-lineage-orphan-detection-cross-destination-consistency: backlog
