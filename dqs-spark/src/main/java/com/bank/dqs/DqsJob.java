@@ -3,10 +3,12 @@ package com.bank.dqs;
 import com.bank.dqs.checks.BreakingChangeCheck;
 import com.bank.dqs.checks.CheckFactory;
 import com.bank.dqs.checks.ClassificationWeightedCheck;
+import com.bank.dqs.checks.CorrelationCheck;
 import com.bank.dqs.checks.DistributionCheck;
 import com.bank.dqs.checks.DqCheck;
 import com.bank.dqs.checks.DqsScoreCheck;
 import com.bank.dqs.checks.FreshnessCheck;
+import com.bank.dqs.checks.InferredSlaCheck;
 import com.bank.dqs.checks.OpsCheck;
 import com.bank.dqs.checks.SchemaCheck;
 import com.bank.dqs.checks.SlaCountdownCheck;
@@ -308,7 +310,8 @@ public class DqsJob {
      * <p>Tier 1 checks: {@link FreshnessCheck}, {@link VolumeCheck}, {@link SchemaCheck},
      * {@link OpsCheck}. Tier 2 checks: {@link SlaCountdownCheck}, {@link ZeroRowCheck},
      * {@link BreakingChangeCheck}, {@link DistributionCheck}, {@link TimestampSanityCheck}.
-     * Tier 3 checks: {@link ClassificationWeightedCheck}, {@link SourceSystemHealthCheck}.
+     * Tier 3 checks: {@link ClassificationWeightedCheck}, {@link SourceSystemHealthCheck},
+     * {@link CorrelationCheck}, {@link InferredSlaCheck} (Epic 7, Story 7.2).
      *
      * <p>{@link DqsScoreCheck} is registered LAST — it reads from the {@code accumulator}
      * list which is populated by the other checks during the same dataset's run.
@@ -345,6 +348,12 @@ public class DqsJob {
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
         f.register(new SourceSystemHealthCheck(                                    // Tier 3 — Epic 7, Story 7.1
                 new SourceSystemHealthCheck.JdbcSourceSystemStatsProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new CorrelationCheck(                                           // Tier 3 — Epic 7, Story 7.2
+                new CorrelationCheck.JdbcCorrelationStatsProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new InferredSlaCheck(                                           // Tier 3 — Epic 7, Story 7.2
+                new InferredSlaCheck.JdbcSlaHistoryProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
         // DqsScoreCheck is registered LAST — always runs after all other checks
         // Lambda captures the accumulator list: reads prior check results for score computation

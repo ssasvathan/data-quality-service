@@ -31,3 +31,7 @@ Items deferred during code reviews, noted here for future sprint planning.
 ## Deferred from: code review of 6-5-timestamp-sanity-check (2026-04-04)
 
 - Column names containing `.` or spaces create ambiguous metric name keys — the `future_pct.<columnName>` and `stale_pct.<columnName>` metric naming pattern (also used by `DistributionCheck`) is ambiguous when a column name contains a `.` character (e.g., `event.ts` → `future_pct.event.ts`). Pre-existing pattern inherited from DistributionCheck; downstream DB uniqueness constraints are unaffected but metric name parsing by dotted-path splitting would be incorrect. Consider quoting or escaping column names in metric keys when non-alphanumeric column names are encountered.
+
+## Deferred from: code review of 7-2-correlation-inferred-sla-checks (2026-04-04)
+
+- LIKE wildcard (`%`, `_`) special character injection in `JdbcCorrelationStatsProvider.getStats` — the `srcSysNm` value is interpolated directly into a LIKE pattern (`%src_sys_nm=<value>/%`) without escaping JDBC LIKE wildcards. If a source system name contains `%` or `_`, the query would match unintended datasets, inflating correlation counts. Pre-existing pattern consistent with `SourceSystemHealthCheck` (Story 7.1). Consider escaping LIKE wildcards in a future hardening story.
