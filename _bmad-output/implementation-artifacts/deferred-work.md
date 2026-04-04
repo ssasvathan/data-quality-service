@@ -11,6 +11,10 @@ Items deferred during code reviews, noted here for future sprint planning.
 - No indexes on FK columns `dq_run_id` in `dq_metric_numeric` and `dq_metric_detail` — full table scans on join operations. Explicitly deferred to story 1-6 (Implement Active Record Views & Indexing) per story spec.
 - `id SERIAL` verification in integration tests checks only `data_type = 'integer'`, not that the column has a sequence-backed DEFAULT. AC1/AC2 require only SERIAL PK (integer type), so this is a test coverage gap, not a defect. Could be enhanced in a future test quality story.
 
+## Deferred from: code review of 4-7-datasetcard-lob-card-component (2026-04-03)
+
+- `previousScore` passthrough to `DqsScoreChip` not explicitly tested in `DatasetCard.test.tsx` — the implementation correctly passes `previousScore={previousScore}` to the chip, but the test mock only captures `score`. Minor coverage gap; no AC requirement for this specific prop passthrough. Consider adding a passthrough assertion test in a future test-quality pass.
+
 ## Deferred from: code review of 4-1-mui-theme-design-system-foundation (2026-04-03)
 
 - `getDqsColor` and `getDqsColorLight` have no guard for invalid inputs (`NaN`, `Infinity`, negative scores) — return error color by default. No AC requirement for input validation; consumer components should validate scores before calling. Consider adding guards when score sourcing is finalized in Story 4.6 (DqsScoreChip).
