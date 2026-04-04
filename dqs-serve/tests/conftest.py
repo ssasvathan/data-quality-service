@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 from serve.db.session import get_db
 from serve.main import app
+from serve.services.reference_data import LobMapping, ReferenceDataService
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -71,12 +72,14 @@ def db_conn() -> Generator[psycopg2.extensions.connection, None, None]:
                 DROP TABLE IF EXISTS dq_orchestration_run CASCADE;
                 DROP TABLE IF EXISTS check_config CASCADE;
                 DROP TABLE IF EXISTS dataset_enrichment CASCADE;
+                DROP TABLE IF EXISTS lob_lookup CASCADE;
                 DROP VIEW IF EXISTS v_dq_run_active CASCADE;
                 DROP VIEW IF EXISTS v_dq_metric_numeric_active CASCADE;
                 DROP VIEW IF EXISTS v_dq_metric_detail_active CASCADE;
                 DROP VIEW IF EXISTS v_check_config_active CASCADE;
                 DROP VIEW IF EXISTS v_dataset_enrichment_active CASCADE;
                 DROP VIEW IF EXISTS v_dq_orchestration_run_active CASCADE;
+                DROP VIEW IF EXISTS v_lob_lookup_active CASCADE;
                 """
             )
             cur.execute(_DDL_PATH.read_text())
@@ -337,4 +340,63 @@ def override_db_dependency(request: pytest.FixtureRequest) -> Generator[None, No
     else:
         # Integration test — use real DB, no override
         app.dependency_overrides.pop(get_db, None)
+        yield
+
+
+@pytest.fixture(autouse=True)
+def mock_reference_data_service(request: pytest.FixtureRequest) -> Generator[None, None, None]:
+    """Auto-use fixture: inject a mock ReferenceDataService for unit tests.
+
+    For tests NOT marked @pytest.mark.integration:
+      - Sets app.state.reference_data to a predictable mock that returns:
+          - LobMapping("Retail Banking", "Jane Doe", "Tier 1 Critical") for "LOB_RETAIL"
+          - LobMapping("N/A", "N/A", "N/A") for all other codes
+      - Patches serve.main.SessionLocal with a no-op DB factory so that any
+        TestClient(app) lifespan startup (e.g. test_app_has_lifespan_that_sets_reference_data_state)
+        does not attempt a real Postgres connection.
+
+    For integration tests, leaves app.state untouched (the seeded_client fixture
+    manages the real lifespan indirectly via the TestClient).
+
+    Per story dev notes (4.5): ReferenceDataService is a singleton on app.state,
+    not a per-request FastAPI Depends() factory.
+    """
+    from unittest.mock import patch  # noqa: PLC0415
+
+    if request.node.get_closest_marker("integration") is None:
+        def _mock_resolve(lookup_code: object) -> LobMapping:
+            if lookup_code == "LOB_RETAIL":
+                return LobMapping(
+                    lob_name="Retail Banking",
+                    owner="Jane Doe",
+                    classification="Tier 1 Critical",
+                )
+            return LobMapping(lob_name="N/A", owner="N/A", classification="N/A")
+
+        # Build a no-op DB session factory for the lifespan's ReferenceDataService.
+        # This prevents connection attempts when TestClient(app) triggers lifespan startup
+        # in unit tests (e.g. TestLifespanAndServiceWiring).
+        mock_db = MagicMock()
+        mock_db.execute.return_value.mappings.return_value.all.return_value = []
+
+        # Set a predictable mock on app.state for route tests that use
+        # the module-level `client` fixture (which does NOT run lifespan).
+        mock_svc = MagicMock(spec=ReferenceDataService)
+        mock_svc.resolve.side_effect = _mock_resolve
+        app.state.reference_data = mock_svc
+
+        # Patch only the SessionLocal used by the lifespan in main.py so that
+        # a TestClient(app) context manager doesn't need a real Postgres connection.
+        # This does NOT affect ReferenceDataService instances created directly in tests
+        # with their own mock db_factory arguments.
+        with patch("serve.main.SessionLocal", return_value=mock_db):
+            yield
+
+        # Clean up: remove reference_data from app.state after unit test
+        try:
+            del app.state.reference_data
+        except AttributeError:
+            pass
+    else:
+        # Integration test — real ReferenceDataService via lifespan; do not mock
         yield

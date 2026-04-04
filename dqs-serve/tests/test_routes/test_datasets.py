@@ -1629,10 +1629,6 @@ class TestDatasetDetailResolvedFields:
     Remove @pytest.mark.skip after implementing Tasks 3-8 of Story 4.5.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_has_all_4_5_fields(self, client: TestClient) -> None:
         """Story 4.5 AC2 [P0]: GET /api/datasets/{dataset_id} must include resolved LOB fields.
 
@@ -1663,10 +1659,6 @@ class TestDatasetDetailResolvedFields:
             "and populate via ReferenceDataService.resolve()."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_lob_name_is_string(self, client: TestClient) -> None:
         """Story 4.5 AC2 [P0]: 'lob_name' field must be a str in the response.
 
@@ -1688,10 +1680,6 @@ class TestDatasetDetailResolvedFields:
             f"value={body['lob_name']!r}. ReferenceDataService.resolve() always returns str."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_owner_is_string(self, client: TestClient) -> None:
         """Story 4.5 AC2 [P0]: 'owner' field must be a str in the response."""
         from serve.main import app  # noqa: PLC0415
@@ -1707,10 +1695,6 @@ class TestDatasetDetailResolvedFields:
             f"value={body['owner']!r}."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_classification_is_string(self, client: TestClient) -> None:
         """Story 4.5 AC2 [P0]: 'classification' field must be a str in the response."""
         from serve.main import app  # noqa: PLC0415
@@ -1728,10 +1712,6 @@ class TestDatasetDetailResolvedFields:
             f"value={body['classification']!r}."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_resolved_fields_not_null(self, client: TestClient) -> None:
         """Story 4.5 AC4 [P0]: lob_name, owner, classification must never be null.
 
@@ -1754,10 +1734,6 @@ class TestDatasetDetailResolvedFields:
                 "DatasetDetail model must declare these as 'str', not 'Optional[str]'."
             )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_mock_returns_retail_banking_for_lob_retail(
         self, client: TestClient
     ) -> None:
@@ -1790,10 +1766,6 @@ class TestDatasetDetailResolvedFields:
             f"got {body.get('classification')!r}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification. Remove skip after implementing Tasks 3-8."
-    )
     def test_dataset_detail_full_key_set_after_4_5(self, client: TestClient) -> None:
         """Story 4.5 AC2 [P1]: Full DatasetDetail key set (4.3 fields + 4.5 resolved fields).
 
@@ -1821,10 +1793,6 @@ class TestDatasetDetailPydanticModelAfter45:
     TDD RED PHASE: fails until DatasetDetail model is extended (Task 6).
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification fields. Remove skip after Task 6."
-    )
     def test_dataset_detail_model_has_lob_name_field(self) -> None:
         """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must declare 'lob_name: str'."""
         from serve.routes.datasets import DatasetDetail  # noqa: PLC0415
@@ -1835,7 +1803,6 @@ class TestDatasetDetailPydanticModelAfter45:
         )
         field = DatasetDetail.model_fields["lob_name"]
         # Should be 'str', not Optional[str]
-        import inspect  # noqa: PLC0415
         annotation = field.annotation
         # Allow str or string type alias
         assert annotation is str or str(annotation) == "str", (
@@ -1843,10 +1810,6 @@ class TestDatasetDetailPydanticModelAfter45:
             "resolve() always returns a string — never null."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification fields. Remove skip after Task 6."
-    )
     def test_dataset_detail_model_has_owner_field(self) -> None:
         """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must declare 'owner: str'."""
         from serve.routes.datasets import DatasetDetail  # noqa: PLC0415
@@ -1856,10 +1819,6 @@ class TestDatasetDetailPydanticModelAfter45:
             "Add 'owner: str' to DatasetDetail in routes/datasets.py (Story 4.5 Task 6)."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): DatasetDetail model does not yet include "
-        "lob_name, owner, or classification fields. Remove skip after Task 6."
-    )
     def test_dataset_detail_model_has_classification_field(self) -> None:
         """Story 4.5 AC2 [P0]: DatasetDetail Pydantic model must declare 'classification: str'."""
         from serve.routes.datasets import DatasetDetail  # noqa: PLC0415
@@ -1876,10 +1835,6 @@ class TestLifespanAndServiceWiring:
     TDD RED PHASE: fails until main.py lifespan is implemented (Task 4).
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE (Story 4.5): FastAPI lifespan and ReferenceDataService "
-        "are not wired into main.py yet. Remove skip after completing Tasks 3-4."
-    )
     def test_app_has_lifespan_that_sets_reference_data_state(self) -> None:
         """Story 4.5 AC1 [P0]: FastAPI lifespan must set app.state.reference_data on startup.
 
@@ -1897,7 +1852,7 @@ class TestLifespanAndServiceWiring:
 
         # The lifespan is tested by verifying app.state.reference_data is set
         # after a request (TestClient triggers the lifespan context manager)
-        with TestClient(app) as client:
+        with TestClient(app):
             # After TestClient startup, app.state.reference_data must exist
             assert hasattr(app.state, "reference_data"), (
                 "app.state.reference_data not set after startup. "

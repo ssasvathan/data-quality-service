@@ -35,7 +35,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 if TYPE_CHECKING:
-    import psycopg2.extensions
+    pass
 
 # ---------------------------------------------------------------------------
 # Shared constants
@@ -57,10 +57,6 @@ class TestReferenceDataServiceResolveNone:
     TDD RED PHASE: fails until services/reference_data.py is created.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_resolve_returns_na_for_none_code(self) -> None:
         """AC4 [P0]: resolve(None) returns LobMapping with all fields = 'N/A'.
 
@@ -94,10 +90,6 @@ class TestReferenceDataServiceResolveUnknown:
     TDD RED PHASE: fails until services/reference_data.py is created.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_resolve_returns_na_for_unknown_code(self) -> None:
         """AC4 [P0]: resolve('UNKNOWN_CODE') with empty cache returns N/A LobMapping.
 
@@ -133,10 +125,6 @@ class TestReferenceDataServiceResolveUnknown:
             f"Unknown code: expected classification='N/A', got {result.classification!r}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_resolve_does_not_raise_for_unknown_code(self) -> None:
         """AC4 [P0]: resolve() must never raise an exception for unknown codes.
 
@@ -168,10 +156,6 @@ class TestReferenceDataServiceResolveKnown:
     TDD RED PHASE: fails until services/reference_data.py is created.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_resolve_returns_cached_mapping(self) -> None:
         """AC2 [P0]: resolve('LOB_RETAIL') returns the mapping pre-populated in _cache.
 
@@ -221,10 +205,6 @@ class TestReferenceDataServiceCacheTTL:
     TDD RED PHASE: fails until services/reference_data.py is created.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_maybe_refresh_triggers_on_stale_cache(self) -> None:
         """AC3 [P0]: _maybe_refresh() calls refresh() when cache is > 12 hours old.
 
@@ -249,10 +229,6 @@ class TestReferenceDataServiceCacheTTL:
             "Last refresh was 13 hours ago but refresh() was NOT called."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_maybe_refresh_skips_on_fresh_cache(self) -> None:
         """AC3 [P0]: _maybe_refresh() does NOT call refresh() when cache is < 12 hours old.
 
@@ -273,10 +249,6 @@ class TestReferenceDataServiceCacheTTL:
             "TTL is 12 hours — refresh was incorrectly triggered."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_maybe_refresh_skips_on_exactly_12h_boundary(self) -> None:
         """AC3 [P1]: _maybe_refresh() does NOT refresh when cache is exactly 12 hours old.
 
@@ -310,10 +282,6 @@ class TestReferenceDataServiceRefresh:
     TDD RED PHASE: fails until services/reference_data.py is created.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_refresh_populates_cache_from_db(self) -> None:
         """AC1 [P0]: refresh() calls db_factory(), queries v_lob_lookup_active, populates _cache.
 
@@ -377,10 +345,6 @@ class TestReferenceDataServiceRefresh:
             f"Expected classification='Tier 1 Critical', got {retail.classification!r}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_refresh_updates_last_refresh_timestamp(self) -> None:
         """AC1 [P1]: refresh() updates _last_refresh to approximately now.
 
@@ -405,10 +369,6 @@ class TestReferenceDataServiceRefresh:
             f"_last_refresh ({svc._last_refresh!r}) must be <= time after refresh call ({after!r})"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_refresh_closes_db_session(self) -> None:
         """AC1 [P1]: refresh() must close the DB session it opens.
 
@@ -429,10 +389,6 @@ class TestReferenceDataServiceRefresh:
             "DB session leak detected — db.close() was not called."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_refresh_closes_db_session_on_query_error(self) -> None:
         """AC1 [P1]: refresh() must close DB session even when query raises an exception.
 
@@ -455,10 +411,6 @@ class TestReferenceDataServiceRefresh:
             "session was not closed after DB error."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_refresh_queries_active_view_not_raw_table(self) -> None:
         """AC1 [P0]: refresh() must query v_lob_lookup_active, never lob_lookup directly.
 
@@ -504,14 +456,11 @@ class TestLobMappingDataclass:
     TDD RED PHASE: fails until services/reference_data.py is created.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_lob_mapping_is_importable(self) -> None:
         """AC2 [P0]: LobMapping dataclass must be importable from the service module."""
-        from serve.services.reference_data import LobMapping  # noqa: PLC0415
         from dataclasses import fields  # noqa: PLC0415
+
+        from serve.services.reference_data import LobMapping  # noqa: PLC0415
 
         field_names = {f.name for f in fields(LobMapping)}
         assert "lob_name" in field_names, (
@@ -524,10 +473,6 @@ class TestLobMappingDataclass:
             "LobMapping must have a 'classification' field"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_lob_mapping_is_frozen(self) -> None:
         """AC2 [P1]: LobMapping must be a frozen dataclass (immutable).
 
@@ -545,10 +490,6 @@ class TestLobMappingDataclass:
         with pytest.raises((TypeError, AttributeError)):
             mapping.lob_name = "Mutated"  # type: ignore[misc]
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/services/reference_data.py does not exist yet. "
-        "Remove skip after implementing ReferenceDataService."
-    )
     def test_reference_data_service_is_importable(self) -> None:
         """AC1 [P0]: ReferenceDataService class must be importable."""
         from serve.services.reference_data import ReferenceDataService  # noqa: PLC0415
@@ -576,10 +517,6 @@ class TestReferenceDataServiceIntegration:
     Run: cd dqs-serve && uv run pytest -m integration tests/test_services/test_reference_data.py
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: lob_lookup table, view, fixtures, and ReferenceDataService "
-        "do not exist yet. Remove skip after completing Tasks 1-3 and Task 3 (service)."
-    )
     @pytest.mark.integration
     def test_refresh_reads_from_lob_lookup_view(
         self, seeded_client: "TestClient"  # noqa: F821
@@ -620,11 +557,6 @@ class TestReferenceDataServiceIntegration:
             f"got {retail.classification!r}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet, and ReferenceDataService is not wired into the lifespan. "
-        "Remove skip after completing Tasks 3-8."
-    )
     @pytest.mark.integration
     def test_dataset_detail_includes_resolved_names(
         self, seeded_client: "TestClient"  # noqa: F821
@@ -663,7 +595,7 @@ class TestReferenceDataServiceIntegration:
         )
 
         assert body["lob_name"] != "N/A", (
-            f"lob_name should be resolved for known LOB_RETAIL, got 'N/A'. "
+            "lob_name should be resolved for known LOB_RETAIL, got 'N/A'. "
             "Check that ReferenceDataService is wired in lifespan and seeded data is correct."
         )
         assert body["lob_name"] == "Retail Banking", (
@@ -678,10 +610,6 @@ class TestReferenceDataServiceIntegration:
             f"got {body['classification']!r}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet. Remove skip after completing Tasks 3-8."
-    )
     @pytest.mark.integration
     def test_dataset_detail_returns_na_for_null_lookup_code(
         self, seeded_client: "TestClient"  # noqa: F821
@@ -695,7 +623,7 @@ class TestReferenceDataServiceIntegration:
         # If no such row exists in fixtures, this test documents the expected behavior
         # and serves as a reminder to add a fixture row with null lookup_code.
         # For now, assert the shape of N/A response pattern.
-        from serve.services.reference_data import LobMapping, ReferenceDataService  # noqa: PLC0415
+        from serve.services.reference_data import ReferenceDataService  # noqa: PLC0415
 
         mock_db_factory = MagicMock()
         svc = ReferenceDataService(db_factory=mock_db_factory)
@@ -719,11 +647,6 @@ class TestDatasetDetailWithResolvedFields:
     These are unit-level route tests using the mock DB session from conftest.py.
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet, and ReferenceDataService is not wired. "
-        "Remove skip after completing Tasks 3-8 and updating conftest.py."
-    )
     def test_dataset_detail_has_lob_name_field(self, client: "TestClient") -> None:  # noqa: F821
         """AC2 [P0]: GET /api/datasets/{dataset_id} response must include 'lob_name' key.
 
@@ -744,10 +667,6 @@ class TestDatasetDetailWithResolvedFields:
             "resolve() always returns a str — never None."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet. Remove skip after completing Tasks 3-8."
-    )
     def test_dataset_detail_has_owner_field(self, client: "TestClient") -> None:  # noqa: F821
         """AC2 [P0]: GET /api/datasets/{dataset_id} response must include 'owner' key.
 
@@ -767,10 +686,6 @@ class TestDatasetDetailWithResolvedFields:
             f"'owner' must be a str, got {type(body['owner'])} value={body['owner']!r}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet. Remove skip after completing Tasks 3-8."
-    )
     def test_dataset_detail_has_classification_field(self, client: "TestClient") -> None:  # noqa: F821
         """AC2 [P0]: GET /api/datasets/{dataset_id} response must include 'classification' key.
 
@@ -790,10 +705,6 @@ class TestDatasetDetailWithResolvedFields:
             f"'classification' must be a str, got {type(body['classification'])}"
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet. Remove skip after completing Tasks 3-8."
-    )
     def test_dataset_detail_resolved_fields_are_snake_case(self, client: "TestClient") -> None:  # noqa: F821
         """AC2 [P1]: New resolved fields must be snake_case per project-context.md.
 
@@ -814,10 +725,6 @@ class TestDatasetDetailWithResolvedFields:
                 f"Field '{field}' is not snake_case — violates project-context.md rule."
             )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: DatasetDetail does not have lob_name/owner/classification "
-        "fields yet. Remove skip after completing Tasks 3-8."
-    )
     def test_dataset_detail_resolved_fields_never_null(self, client: "TestClient") -> None:  # noqa: F821
         """AC4 [P0]: lob_name, owner, classification must never be null in the response.
 
@@ -847,10 +754,6 @@ class TestGetReferenceDataServiceDependency:
     TDD RED PHASE: fails until dependencies.py is created (Task 5).
     """
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/dependencies.py does not exist yet. "
-        "Remove skip after completing Task 5."
-    )
     def test_dependencies_module_is_importable(self) -> None:
         """AC2 [P1]: serve.dependencies module must be importable."""
         from serve import dependencies  # noqa: PLC0415
@@ -860,10 +763,6 @@ class TestGetReferenceDataServiceDependency:
             "Per story dev notes: create dependencies.py to avoid circular imports."
         )
 
-    @pytest.mark.skip(
-        reason="RED PHASE: serve/dependencies.py does not exist yet. "
-        "Remove skip after completing Task 5."
-    )
     def test_get_reference_data_service_returns_service_from_app_state(self) -> None:
         """AC2 [P1]: get_reference_data_service returns the ReferenceDataService from app.state.
 

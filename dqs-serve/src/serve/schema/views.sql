@@ -20,3 +20,6 @@ CREATE OR REPLACE VIEW v_check_config_active AS
 
 CREATE OR REPLACE VIEW v_dataset_enrichment_active AS
     SELECT * FROM dataset_enrichment WHERE expiry_date = '9999-12-31 23:59:59';
+
+CREATE OR REPLACE VIEW v_lob_lookup_active AS
+    SELECT * FROM lob_lookup WHERE expiry_date = '9999-12-31 23:59:59';

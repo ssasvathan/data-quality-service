@@ -4,19 +4,54 @@ Routes are organised in src/serve/routes/ modules.
 All routes are prefixed with /api.
 The /health endpoint is kept at root level for infrastructure readiness checks.
 """
+import asyncio
 import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from .db.engine import SessionLocal
 from .routes import datasets as datasets_router
 from .routes import lobs as lobs_router
 from .routes import search as search_router
 from .routes import summary as summary_router
+from .services.reference_data import ReferenceDataService
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Data Quality Service")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """FastAPI lifespan context manager — runs startup and shutdown logic.
+
+    Startup: creates ReferenceDataService, calls refresh() to populate cache,
+    stores as app.state.reference_data for route handler access.
+    Shutdown: no cleanup required (cache is in-memory only).
+
+    Per story dev notes: use lifespan, NOT deprecated @app.on_event("startup").
+    Per project-context.md: NEVER use @app.on_event("startup") — use lifespan.
+    """
+    # Startup — populate reference data cache.
+    # [High-3] refresh() is a blocking sync DB call; run it in a thread executor
+    # so it does not block the async event loop.
+    # [Medium-1] Wrap in try/except to log meaningful error before re-raising.
+    svc = ReferenceDataService(db_factory=SessionLocal)
+    try:
+        await asyncio.to_thread(svc.refresh)
+    except Exception:
+        logger.exception(
+            "Failed to populate ReferenceDataService cache at startup — "
+            "check database connectivity and v_lob_lookup_active view."
+        )
+        raise
+    app.state.reference_data = svc
+    yield
+    # Shutdown — nothing to clean up
+
+
+app = FastAPI(title="Data Quality Service", lifespan=lifespan)
 
 
 # ---------------------------------------------------------------------------

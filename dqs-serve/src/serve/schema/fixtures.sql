@@ -212,6 +212,16 @@ WHERE dataset_name = 'lob=commercial/src_sys_nm=beta/dataset=transactions'
   AND expiry_date = '9999-12-31 23:59:59';
 
 -- ---------------------------------------------------------------------------
+-- lob_lookup rows — reference data for lookup_code resolution (4.5)
+-- ---------------------------------------------------------------------------
+
+INSERT INTO lob_lookup (lookup_code, lob_name, owner, classification, expiry_date)
+VALUES
+    ('LOB_RETAIL',     'Retail Banking',     'Jane Doe',    'Tier 1 Critical', '9999-12-31 23:59:59'),
+    ('LOB_COMMERCIAL', 'Commercial Banking', 'John Smith',  'Tier 1 Critical', '9999-12-31 23:59:59'),
+    ('LOB_LEGACY',     'Legacy Systems',     'Alice Brown', 'Tier 2 Standard', '9999-12-31 23:59:59');
+
+-- ---------------------------------------------------------------------------
 -- check_config rows (AC6)
 -- ---------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 # Story 4.5: Reference Data Resolution & Caching
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -19,73 +19,73 @@ so that datasets are displayed with human-readable business context instead of r
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add `lob_lookup` table to schema DDL and views (AC: 1, 2, 4)
-  - [ ] Add `CREATE TABLE lob_lookup` to `dqs-serve/src/serve/schema/ddl.sql` with temporal pattern columns (`create_date`, `expiry_date = '9999-12-31 23:59:59'`)
-  - [ ] Columns: `id SERIAL PRIMARY KEY`, `lookup_code TEXT NOT NULL`, `lob_name TEXT NOT NULL`, `owner TEXT NOT NULL`, `classification TEXT NOT NULL`, `create_date TIMESTAMP NOT NULL DEFAULT NOW()`, `expiry_date TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59'`
-  - [ ] Add unique constraint: `CONSTRAINT uq_lob_lookup_lookup_code_expiry_date UNIQUE (lookup_code, expiry_date)`
-  - [ ] Add index: `CREATE INDEX IF NOT EXISTS idx_lob_lookup_lookup_code ON lob_lookup (lookup_code)`
-  - [ ] Add `CREATE OR REPLACE VIEW v_lob_lookup_active AS SELECT * FROM lob_lookup WHERE expiry_date = '9999-12-31 23:59:59';` to `dqs-serve/src/serve/schema/views.sql`
-  - [ ] Add `DROP TABLE IF EXISTS lob_lookup CASCADE;` and `DROP VIEW IF EXISTS v_lob_lookup_active CASCADE;` to the cleanup block in `dqs-serve/tests/conftest.py` `db_conn` fixture (maintains clean test state)
+- [x] Task 1: Add `lob_lookup` table to schema DDL and views (AC: 1, 2, 4)
+  - [x] Add `CREATE TABLE lob_lookup` to `dqs-serve/src/serve/schema/ddl.sql` with temporal pattern columns (`create_date`, `expiry_date = '9999-12-31 23:59:59'`)
+  - [x] Columns: `id SERIAL PRIMARY KEY`, `lookup_code TEXT NOT NULL`, `lob_name TEXT NOT NULL`, `owner TEXT NOT NULL`, `classification TEXT NOT NULL`, `create_date TIMESTAMP NOT NULL DEFAULT NOW()`, `expiry_date TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59'`
+  - [x] Add unique constraint: `CONSTRAINT uq_lob_lookup_lookup_code_expiry_date UNIQUE (lookup_code, expiry_date)`
+  - [x] Add index: `CREATE INDEX IF NOT EXISTS idx_lob_lookup_lookup_code ON lob_lookup (lookup_code)`
+  - [x] Add `CREATE OR REPLACE VIEW v_lob_lookup_active AS SELECT * FROM lob_lookup WHERE expiry_date = '9999-12-31 23:59:59';` to `dqs-serve/src/serve/schema/views.sql`
+  - [x] Add `DROP TABLE IF EXISTS lob_lookup CASCADE;` and `DROP VIEW IF EXISTS v_lob_lookup_active CASCADE;` to the cleanup block in `dqs-serve/tests/conftest.py` `db_conn` fixture (maintains clean test state)
 
-- [ ] Task 2: Add fixture rows for `lob_lookup` to `fixtures.sql` (AC: 1, 2, 4)
-  - [ ] Insert active rows for `LOB_RETAIL`, `LOB_COMMERCIAL`, `LOB_LEGACY` matching existing `dq_run.lookup_code` values in fixtures
-  - [ ] Rows must carry `expiry_date = '9999-12-31 23:59:59'` (temporal pattern)
-  - [ ] Example row: `('LOB_RETAIL', 'Retail Banking', 'Jane Doe', 'Tier 1 Critical', '9999-12-31 23:59:59')`
+- [x] Task 2: Add fixture rows for `lob_lookup` to `fixtures.sql` (AC: 1, 2, 4)
+  - [x] Insert active rows for `LOB_RETAIL`, `LOB_COMMERCIAL`, `LOB_LEGACY` matching existing `dq_run.lookup_code` values in fixtures
+  - [x] Rows must carry `expiry_date = '9999-12-31 23:59:59'` (temporal pattern)
+  - [x] Example row: `('LOB_RETAIL', 'Retail Banking', 'Jane Doe', 'Tier 1 Critical', '9999-12-31 23:59:59')`
 
-- [ ] Task 3: Implement `ReferenceDataService` in `dqs-serve/src/serve/services/reference_data.py` (AC: 1, 2, 3, 4)
-  - [ ] Create `dqs-serve/src/serve/services/__init__.py` (empty)
-  - [ ] Create `dqs-serve/src/serve/services/reference_data.py` (new file)
-  - [ ] Define `LobMapping` dataclass with fields: `lob_name: str`, `owner: str`, `classification: str`
-  - [ ] Define `ReferenceDataService` class with:
-    - [ ] `__init__(self, db_factory: Callable[[], Session])` — takes a callable that returns a fresh DB session
-    - [ ] `_cache: dict[str, LobMapping]` — internal dict mapping `lookup_code` → `LobMapping`
-    - [ ] `_last_refresh: datetime.datetime` — tracks last cache refresh time
-    - [ ] `_lock: threading.Lock` — protects concurrent reads during refresh
-    - [ ] `refresh(self) -> None` — loads all rows from `v_lob_lookup_active` into `_cache`, updates `_last_refresh`
-    - [ ] `resolve(self, lookup_code: str | None) -> LobMapping` — returns mapping for code, or `LobMapping("N/A", "N/A", "N/A")` if code is None or not found
-    - [ ] `_maybe_refresh(self) -> None` — refreshes cache if `_last_refresh` is more than 12 hours ago; called inside `resolve()`
-  - [ ] SQL: `SELECT lookup_code, lob_name, owner, classification FROM v_lob_lookup_active`
-  - [ ] Use SQLAlchemy 2.0 style: `db.execute(text(...)).mappings().all()`
-  - [ ] `refresh()` opens its own session using `db_factory()`, closes it when done
-  - [ ] Log at INFO when cache is refreshed; log at WARN when lookup_code is unresolved
+- [x] Task 3: Implement `ReferenceDataService` in `dqs-serve/src/serve/services/reference_data.py` (AC: 1, 2, 3, 4)
+  - [x] Create `dqs-serve/src/serve/services/__init__.py` (empty)
+  - [x] Create `dqs-serve/src/serve/services/reference_data.py` (new file)
+  - [x] Define `LobMapping` dataclass with fields: `lob_name: str`, `owner: str`, `classification: str`
+  - [x] Define `ReferenceDataService` class with:
+    - [x] `__init__(self, db_factory: Callable[[], Session])` — takes a callable that returns a fresh DB session
+    - [x] `_cache: dict[str, LobMapping]` — internal dict mapping `lookup_code` → `LobMapping`
+    - [x] `_last_refresh: datetime.datetime` — tracks last cache refresh time
+    - [x] `_lock: threading.Lock` — protects concurrent reads during refresh
+    - [x] `refresh(self) -> None` — loads all rows from `v_lob_lookup_active` into `_cache`, updates `_last_refresh`
+    - [x] `resolve(self, lookup_code: str | None) -> LobMapping` — returns mapping for code, or `LobMapping("N/A", "N/A", "N/A")` if code is None or not found
+    - [x] `_maybe_refresh(self) -> None` — refreshes cache if `_last_refresh` is more than 12 hours ago; called inside `resolve()`
+  - [x] SQL: `SELECT lookup_code, lob_name, owner, classification FROM v_lob_lookup_active`
+  - [x] Use SQLAlchemy 2.0 style: `db.execute(text(...)).mappings().all()`
+  - [x] `refresh()` opens its own session using `db_factory()`, closes it when done
+  - [x] Log at INFO when cache is refreshed; log at WARN when lookup_code is unresolved
 
-- [ ] Task 4: Wire `ReferenceDataService` into FastAPI lifespan in `main.py` (AC: 1, 3)
-  - [ ] Add FastAPI `lifespan` context manager (replaces `@app.on_event("startup")` pattern — FastAPI 0.95+ preferred)
-  - [ ] In `lifespan` startup: create `ReferenceDataService(db_factory=SessionLocal)`, call `service.refresh()`, store as `app.state.reference_data`
-  - [ ] Import `SessionLocal` from `..db.engine` in `main.py`
-  - [ ] `ReferenceDataService` instance accessible via `request.app.state.reference_data` in route handlers
-  - [ ] Do NOT pass `ReferenceDataService` as a FastAPI `Depends()` — it is a singleton, not per-request
+- [x] Task 4: Wire `ReferenceDataService` into FastAPI lifespan in `main.py` (AC: 1, 3)
+  - [x] Add FastAPI `lifespan` context manager (replaces `@app.on_event("startup")` pattern — FastAPI 0.95+ preferred)
+  - [x] In `lifespan` startup: create `ReferenceDataService(db_factory=SessionLocal)`, call `service.refresh()`, store as `app.state.reference_data`
+  - [x] Import `SessionLocal` from `..db.engine` in `main.py`
+  - [x] `ReferenceDataService` instance accessible via `request.app.state.reference_data` in route handlers
+  - [x] Do NOT pass `ReferenceDataService` as a FastAPI `Depends()` — it is a singleton, not per-request
 
-- [ ] Task 5: Expose `get_reference_data_service` FastAPI dependency in `main.py` (AC: 2)
-  - [ ] Add `get_reference_data_service(request: Request) -> ReferenceDataService` function to `main.py`
-  - [ ] Returns `request.app.state.reference_data`
-  - [ ] This enables `Depends(get_reference_data_service)` in route handlers
+- [x] Task 5: Expose `get_reference_data_service` FastAPI dependency in `main.py` (AC: 2)
+  - [x] Add `get_reference_data_service(request: Request) -> ReferenceDataService` function to `main.py`
+  - [x] Returns `request.app.state.reference_data`
+  - [x] This enables `Depends(get_reference_data_service)` in route handlers
 
-- [ ] Task 6: Enrich `GET /api/datasets/{dataset_id}` response with resolved names (AC: 2, 4)
-  - [ ] In `datasets.py`, add `lob_name: str`, `owner: str`, `classification: str` fields to `DatasetDetail` Pydantic model
-  - [ ] Inject `ref_svc: ReferenceDataService = Depends(get_reference_data_service)` into `get_dataset_detail` route
-  - [ ] Call `ref_svc.resolve(row["lookup_code"])` to get mapping; set `lob_name`, `owner`, `classification` on the response
-  - [ ] Import `get_reference_data_service` from `..main` — OR extract to a shared `dependencies.py` module to avoid circular import (see Dev Notes)
+- [x] Task 6: Enrich `GET /api/datasets/{dataset_id}` response with resolved names (AC: 2, 4)
+  - [x] In `datasets.py`, add `lob_name: str`, `owner: str`, `classification: str` fields to `DatasetDetail` Pydantic model
+  - [x] Inject `ref_svc: ReferenceDataService = Depends(get_reference_data_service)` into `get_dataset_detail` route
+  - [x] Call `ref_svc.resolve(row["lookup_code"])` to get mapping; set `lob_name`, `owner`, `classification` on the response
+  - [x] Import `get_reference_data_service` from `..main` — OR extract to a shared `dependencies.py` module to avoid circular import (see Dev Notes)
 
-- [ ] Task 7: Write pytest tests for `ReferenceDataService` (AC: 1, 2, 3, 4)
-  - [ ] Create `dqs-serve/tests/test_services/__init__.py` (empty)
-  - [ ] Create `dqs-serve/tests/test_services/test_reference_data.py`
-  - [ ] Unit tests (no `@pytest.mark.integration` marker):
-    - [ ] `test_resolve_returns_na_for_none_code` — `resolve(None)` → `LobMapping("N/A", "N/A", "N/A")`
-    - [ ] `test_resolve_returns_na_for_unknown_code` — `resolve("UNKNOWN_CODE")` with empty cache → returns N/A
-    - [ ] `test_resolve_returns_cached_mapping` — pre-populate `_cache`, `resolve("LOB_RETAIL")` → correct mapping
-    - [ ] `test_maybe_refresh_triggers_on_stale_cache` — set `_last_refresh` to 13 hours ago, mock `refresh()`, confirm it is called
-    - [ ] `test_maybe_refresh_skips_on_fresh_cache` — set `_last_refresh` to 1 hour ago, confirm `refresh()` is NOT called
-    - [ ] `test_refresh_populates_cache_from_db` — mock `db_factory()` returning fake rows, call `refresh()`, verify cache populated correctly
-  - [ ] Integration tests (`@pytest.mark.integration`):
-    - [ ] `test_refresh_reads_from_lob_lookup_view` — with `seeded_client` fixture, verify that `ReferenceDataService(SessionLocal).refresh()` populates cache with `LOB_RETAIL`, `LOB_COMMERCIAL`, `LOB_LEGACY`
-    - [ ] `test_dataset_detail_includes_resolved_names` — `GET /api/datasets/{dataset_id}` with seeded data → response includes `lob_name`, `owner`, `classification` (not "N/A" for known LOBs)
+- [x] Task 7: Write pytest tests for `ReferenceDataService` (AC: 1, 2, 3, 4)
+  - [x] Create `dqs-serve/tests/test_services/__init__.py` (empty)
+  - [x] Create `dqs-serve/tests/test_services/test_reference_data.py`
+  - [x] Unit tests (no `@pytest.mark.integration` marker):
+    - [x] `test_resolve_returns_na_for_none_code` — `resolve(None)` → `LobMapping("N/A", "N/A", "N/A")`
+    - [x] `test_resolve_returns_na_for_unknown_code` — `resolve("UNKNOWN_CODE")` with empty cache → returns N/A
+    - [x] `test_resolve_returns_cached_mapping` — pre-populate `_cache`, `resolve("LOB_RETAIL")` → correct mapping
+    - [x] `test_maybe_refresh_triggers_on_stale_cache` — set `_last_refresh` to 13 hours ago, mock `refresh()`, confirm it is called
+    - [x] `test_maybe_refresh_skips_on_fresh_cache` — set `_last_refresh` to 1 hour ago, confirm `refresh()` is NOT called
+    - [x] `test_refresh_populates_cache_from_db` — mock `db_factory()` returning fake rows, call `refresh()`, verify cache populated correctly
+  - [x] Integration tests (`@pytest.mark.integration`):
+    - [x] `test_refresh_reads_from_lob_lookup_view` — with `seeded_client` fixture, verify that `ReferenceDataService(SessionLocal).refresh()` populates cache with `LOB_RETAIL`, `LOB_COMMERCIAL`, `LOB_LEGACY`
+    - [x] `test_dataset_detail_includes_resolved_names` — `GET /api/datasets/{dataset_id}` with seeded data → response includes `lob_name`, `owner`, `classification` (not "N/A" for known LOBs)
 
-- [ ] Task 8: Update `conftest.py` mock for route tests that now return resolved fields (AC: 2, 4)
-  - [ ] Extend `_make_mock_db_session` to handle `lob_lookup` queries (no params, returns fake lob_lookup rows) — OR mock `ReferenceDataService` at the app level in unit tests
-  - [ ] For unit tests: override `app.state.reference_data` with a mock `ReferenceDataService` whose `resolve()` returns `LobMapping("Retail Banking", "Jane Doe", "Tier 1 Critical")` for "LOB_RETAIL" and `LobMapping("N/A", "N/A", "N/A")` for unknown codes
-  - [ ] Add autouse fixture or extend `override_db_dependency` to inject mock `ReferenceDataService` for unit tests
-  - [ ] Ensure existing tests for `GET /api/datasets/9` still pass after `lob_name`/`owner`/`classification` fields added
+- [x] Task 8: Update `conftest.py` mock for route tests that now return resolved fields (AC: 2, 4)
+  - [x] Extend `_make_mock_db_session` to handle `lob_lookup` queries (no params, returns fake lob_lookup rows) — OR mock `ReferenceDataService` at the app level in unit tests
+  - [x] For unit tests: override `app.state.reference_data` with a mock `ReferenceDataService` whose `resolve()` returns `LobMapping("Retail Banking", "Jane Doe", "Tier 1 Critical")` for "LOB_RETAIL" and `LobMapping("N/A", "N/A", "N/A")` for unknown codes
+  - [x] Add autouse fixture or extend `override_db_dependency` to inject mock `ReferenceDataService` for unit tests
+  - [x] Ensure existing tests for `GET /api/datasets/9` still pass after `lob_name`/`owner`/`classification` fields added
 
 ## Dev Notes
 
@@ -431,6 +431,38 @@ claude-sonnet-4-6
 
 ### Debug Log References
 
+None — implementation completed without major blockers.
+
 ### Completion Notes List
 
+- Implemented `lob_lookup` table with temporal pattern in `ddl.sql` and `v_lob_lookup_active` view in `views.sql`
+- Added lob_lookup fixture rows for `LOB_RETAIL`, `LOB_COMMERCIAL`, `LOB_LEGACY` to `fixtures.sql`
+- Created `services/__init__.py` (empty) and `services/reference_data.py` with `LobMapping` frozen dataclass and `ReferenceDataService` class
+- `ReferenceDataService` uses threading.Lock for cache safety, 12h TTL with 1-second grace period to avoid boundary timing races
+- Created `dependencies.py` with `get_reference_data_service` to prevent circular imports (Option A from Dev Notes)
+- Updated `main.py` with FastAPI `lifespan` context manager using `asynccontextmanager` — replaces deprecated `@app.on_event("startup")`
+- Updated `DatasetDetail` Pydantic model with `lob_name`, `owner`, `classification` fields (all `str`, never `Optional`)
+- Updated `get_dataset` route handler to inject `ref_svc: ReferenceDataService = Depends(get_reference_data_service)` and call `ref_svc.resolve(row["lookup_code"])`
+- Added `mock_reference_data_service` autouse fixture to `conftest.py` with `patch("serve.main.SessionLocal")` to prevent lifespan DB calls in unit tests
+- Removed ALL `@pytest.mark.skip` decorators from `test_reference_data.py` (24 removed) and `test_datasets.py` (11 removed)
+- Applied ruff auto-fixes to test files; manually fixed unused `client` variable in lifespan test
+- All 110 unit tests pass with 0 skipped, 0 failed
+
 ### File List
+
+- `dqs-serve/src/serve/schema/ddl.sql` (modified — added lob_lookup table + index)
+- `dqs-serve/src/serve/schema/views.sql` (modified — added v_lob_lookup_active view)
+- `dqs-serve/src/serve/schema/fixtures.sql` (modified — added lob_lookup rows)
+- `dqs-serve/src/serve/services/__init__.py` (created — empty)
+- `dqs-serve/src/serve/services/reference_data.py` (created — LobMapping + ReferenceDataService)
+- `dqs-serve/src/serve/dependencies.py` (created — get_reference_data_service dependency)
+- `dqs-serve/src/serve/main.py` (modified — lifespan context manager + ReferenceDataService wiring)
+- `dqs-serve/src/serve/routes/datasets.py` (modified — DatasetDetail fields + ref_svc injection)
+- `dqs-serve/tests/conftest.py` (modified — lob_lookup cleanup + mock_reference_data_service autouse fixture)
+- `dqs-serve/tests/test_services/__init__.py` (already existed — empty, confirmed)
+- `dqs-serve/tests/test_services/test_reference_data.py` (modified — removed all @pytest.mark.skip decorators + ruff fixes)
+- `dqs-serve/tests/test_routes/test_datasets.py` (modified — removed all @pytest.mark.skip decorators + ruff fixes)
+
+## Change Log
+
+- 2026-04-03: Story 4.5 implemented — reference data resolution and caching complete. lob_lookup table, v_lob_lookup_active view, ReferenceDataService (12h TTL cache), FastAPI lifespan wiring, DatasetDetail enrichment with lob_name/owner/classification, dependencies.py to avoid circular imports, conftest.py mock_reference_data_service autouse fixture. All 110 unit tests pass (0 skipped).

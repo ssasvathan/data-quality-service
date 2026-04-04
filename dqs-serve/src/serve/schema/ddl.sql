@@ -108,3 +108,17 @@ CREATE INDEX IF NOT EXISTS idx_dataset_enrichment_dataset_pattern
 
 CREATE INDEX IF NOT EXISTS idx_dq_orchestration_run_parent_path
     ON dq_orchestration_run (parent_path);
+
+CREATE TABLE lob_lookup (
+    id              SERIAL PRIMARY KEY,
+    lookup_code     TEXT NOT NULL,
+    lob_name        TEXT NOT NULL,
+    owner           TEXT NOT NULL,
+    classification  TEXT NOT NULL,
+    create_date     TIMESTAMP NOT NULL DEFAULT NOW(),
+    expiry_date     TIMESTAMP NOT NULL DEFAULT '9999-12-31 23:59:59',
+    CONSTRAINT uq_lob_lookup_lookup_code_expiry_date
+        UNIQUE (lookup_code, expiry_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lob_lookup_lookup_code ON lob_lookup (lookup_code);

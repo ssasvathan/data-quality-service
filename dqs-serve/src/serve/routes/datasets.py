@@ -4,11 +4,13 @@ All queries use active-record views (v_dq_run_active, v_dq_metric_numeric_active
 v_dq_metric_detail_active, v_dq_orchestration_run_active). Never query raw tables.
 Per project-context.md: snake_case JSON keys, SQLAlchemy 2.0 style, type hints on all functions.
 """
+from __future__ import annotations
+
 import datetime
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
@@ -16,6 +18,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
+from ..dependencies import get_reference_data_service
+
+if TYPE_CHECKING:
+    # [Low-3] Import ReferenceDataService only for type-checking purposes;
+    # at runtime the dependency is resolved via Depends(get_reference_data_service).
+    from ..services.reference_data import ReferenceDataService  # noqa: TC001
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -45,6 +53,9 @@ class DatasetDetail(BaseModel):
     dqs_score: Optional[float]
     check_status: str
     error_message: Optional[str]
+    lob_name: str       # resolved from lookup_code via ReferenceDataService
+    owner: str          # resolved from lookup_code via ReferenceDataService
+    classification: str  # resolved from lookup_code via ReferenceDataService
 
 
 class NumericMetric(BaseModel):
@@ -269,12 +280,17 @@ def _parse_time_range(time_range: str) -> int:
 
 
 @router.get("/datasets/{dataset_id}", response_model=DatasetDetail)
-def get_dataset(dataset_id: int, db: Session = Depends(get_db)) -> DatasetDetail:
+def get_dataset(
+    dataset_id: int,
+    db: Session = Depends(get_db),
+    ref_svc: ReferenceDataService = Depends(get_reference_data_service),
+) -> DatasetDetail:
     """Return full metadata for a single dataset (dq_run record).
 
     dataset_id is dq_run.id (the primary key of the run record).
     Queries v_dq_run_active — never raw dq_run table.
     Returns 404 if no active record found for the given id.
+    lookup_code is resolved to lob_name, owner, classification via ReferenceDataService.
     """
     rows = db.execute(_DATASET_DETAIL_SQL, {"dataset_id": dataset_id}).mappings().all()
 
@@ -319,6 +335,9 @@ def get_dataset(dataset_id: int, db: Session = Depends(get_db)) -> DatasetDetail
         format_rows[0].get("detail_value") if format_rows else None
     )
 
+    # Resolve lookup_code to human-readable LOB names via ReferenceDataService
+    mapping = ref_svc.resolve(run["lookup_code"])
+
     return DatasetDetail(
         dataset_id=dataset_id,
         dataset_name=dataset_name,
@@ -336,6 +355,9 @@ def get_dataset(dataset_id: int, db: Session = Depends(get_db)) -> DatasetDetail
         dqs_score=run["dqs_score"],
         check_status=run["check_status"],
         error_message=run["error_message"],
+        lob_name=mapping.lob_name,
+        owner=mapping.owner,
+        classification=mapping.classification,
     )
 
 
