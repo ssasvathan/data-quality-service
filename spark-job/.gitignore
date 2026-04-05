@@ -1,9 +1,0 @@
-target/
-.idea/
-*.iml
-.bsp/
-.metals/
-.bloop/
-*.class
-*.log
-.DS_Store
