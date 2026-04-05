@@ -245,10 +245,9 @@ public final class BreakingChangeCheck implements DqCheck {
 
     /**
      * Functional interface for providing a JDBC connection (same pattern as SchemaCheck).
-     * Package-private: only {@link JdbcSchemaBaselineProvider} within this package uses it.
      */
     @FunctionalInterface
-    interface ConnectionProvider {
+    public interface ConnectionProvider {
         Connection getConnection() throws SQLException;
     }
 

@@ -518,10 +518,9 @@ public final class DistributionCheck implements DqCheck {
 
     /**
      * Functional interface for providing a JDBC connection.
-     * Package-private: only JDBC inner classes within this package use it.
      */
     @FunctionalInterface
-    interface ConnectionProvider {
+    public interface ConnectionProvider {
         Connection getConnection() throws SQLException;
     }
 

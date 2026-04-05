@@ -283,6 +283,18 @@ ZeroRowCheck outputs only the row count (a number). No dataset field names, valu
 - Architecture — Check extensibility: `_bmad-output/planning-artifacts/architecture.md#Core Architectural Decisions`
 - Previous story (6.1): `_bmad-output/implementation-artifacts/6-1-sla-countdown-check.md`
 
+## Review Findings
+
+**Retroactive review — Epic 6 retrospective action item #4 (2026-04-04)**
+
+| # | Finding | Severity | Resolution |
+|---|---------|----------|------------|
+| 1 | **Null DataFrame boundary**: `execute()` guards `context == null` but does not explicitly guard `context.getDf() == null`. A `DatasetContext` with a null DataFrame would reach `context.getDf().count()` and throw NPE, which is caught by the outer try/catch and returned as `NOT_RUN/execution_error`. Behaviour is correct but implicit — an explicit null guard would make the intent clearer. | Low | Accepted as-is. The try/catch isolation handles NPE correctly and the NOT_RUN detail is surfaced. Adding an explicit guard is a style improvement with no functional impact; deferred. |
+| 2 | **Zero-count vs empty-partition ambiguity**: A DataFrame with `count() == 0` could represent a genuinely empty delivery or a filter/predicate applied upstream. The check cannot distinguish these cases and always FATLs. This is documented behaviour per AC but operators should be aware. | Low | Accepted by design. Check intent is "empty delivery = FAIL". Documented here for future check authors. |
+| 3 | **`metrics.clear()` before error detail**: The exception handler calls `metrics.clear()` before adding the error detail. Given that no metrics are added before the `count()` call, this is defensive but not strictly necessary at current code. Consistent with the Epic 6 pattern (added after 6-5 review). | Informational | Consistent with team pattern — no action needed. |
+
+**Verdict:** Approved. No blocking findings. Story 6.2 is sound for its scope.
+
 ## Dev Agent Record
 
 ### Agent Model Used

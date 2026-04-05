@@ -35,3 +35,12 @@ Items deferred during code reviews, noted here for future sprint planning.
 ## Deferred from: code review of 7-2-correlation-inferred-sla-checks (2026-04-04)
 
 - LIKE wildcard (`%`, `_`) special character injection in `JdbcCorrelationStatsProvider.getStats` — the `srcSysNm` value is interpolated directly into a LIKE pattern (`%src_sys_nm=<value>/%`) without escaping JDBC LIKE wildcards. If a source system name contains `%` or `_`, the query would match unintended datasets, inflating correlation counts. Pre-existing pattern consistent with `SourceSystemHealthCheck` (Story 7.1). Consider escaping LIKE wildcards in a future hardening story.
+
+## Deferred from: code review of 7-3-lineage-orphan-detection-cross-destination-consistency (2026-04-04)
+
+- LIKE wildcard (`%`, `_`) special character injection in `LineageCheck.JdbcLineageStatsProvider.getStats` — `srcSysNm` is interpolated directly into `%src_sys_nm=<value>/%` LIKE pattern without escaping. If a source system name contains `%` or `_`, the NOT LIKE query would exclude unintended datasets, skewing upstream counts. Pre-existing pattern consistent with `CorrelationCheck` (Story 7.2) and `SourceSystemHealthCheck` (Story 7.1). Consider escaping LIKE wildcards in a future hardening story.
+
+## Deferred from: code review of 7-4-executive-reporting-suite (2026-04-04)
+
+- `useExecutiveReport` has no `staleTime` configured — may cause unnecessary refetches on every mount for a heavy 3-query executive report endpoint. Pre-existing pattern: no other hooks in `queries.ts` configure explicit `staleTime`. Consider setting a `staleTime` (e.g., 5 minutes) for the executive report hook in a future performance hardening story.
+- 'WARN' status datasets are uncounted in `source_system_scores` healthy/critical totals — the source system accountability SQL counts only `PASS` as healthy and `FAIL` as critical; 'WARN' datasets fall through uncounted. Spec-compliant (AC6 only specifies PASS=healthy, FAIL=critical), but creates a gap in accountability totals when degraded datasets exist. Consider adding a `degraded_count` field in a future enhancement.

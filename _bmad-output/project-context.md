@@ -35,6 +35,7 @@ This is a 5-component data quality platform. Each component is **fully self-cont
 - **Spark 3.5.0 needs `--add-opens` JVM flags** for module access (12 flags in pom.xml Surefire config)
 - **Python components use `uv`** for dependency management, not pip
 - **Spark is `provided` scope** — never bundle Spark JARs into the fat JAR
+- **FastMCP `exclude_args` deprecated in FastMCP 2.14** — monitor before upgrading past 3.x; `exclude_args` parameter was removed and may silently break tool registration if not caught at upgrade time
 
 ---
 
@@ -58,6 +59,7 @@ This is a 5-component data quality platform. Each component is **fully self-cont
 - SQLAlchemy 2.0 style — use `Session` context managers, not legacy `session.query()`
 - Environment variable configuration: `os.getenv("KEY", "default")` pattern
 - Relative imports within a package (`.db`, `.models`), absolute for external
+- **psycopg2 connections must be closed** — use `try/finally: conn.close()` or a context manager; never leave connections open on exception paths
 
 **TypeScript (dqs-dashboard):**
 - Strict mode TypeScript — no `any` types
@@ -78,6 +80,7 @@ This is a 5-component data quality platform. Each component is **fully self-cont
 - Checks output to generic metric tables (`dq_metric_numeric`, `dq_metric_detail`) — detail metrics contain field names, **never source data values** (data sensitivity boundary)
 - Adding a new check = new Java class + factory registration + `check_config` row — zero changes to serve/API/dashboard
 - DQS Score is a **weighted composite computed in Spark** — the only component that knows check types
+- **Tier 3 checks run before `DqsScoreCheck`** — they cannot read the current run's DQS score; use priority multiplier signals (see `ClassificationWeightedCheck`) or historical score queries instead
 - Per-dataset failure isolation: catch exceptions per dataset, log error, record in results, continue to next dataset. **Never let one dataset crash the JVM.**
 
 **React (dqs-dashboard):**
@@ -112,6 +115,7 @@ This is the most critical cross-cutting pattern:
 **dqs-spark (JUnit 5):**
 - Tests in `src/test/java/` mirroring `src/main/java/` (Maven standard)
 - Use **H2 in-memory database** for `MetadataRepository`/writer tests — SQL must be compatible with both H2 and Postgres
+- **H2 numeric columns with fractional values require `DECIMAL(20,5)`** — H2 maps `NUMERIC` without precision to integer; use `DECIMAL(20,5)` in H2 test DDL for columns that store floats (e.g., `sla_hours`, `z_score`)
 - Test naming: `<action><expectation>` (e.g., `volumeCheckFlagsAnomaliesOutsideStdDev`)
 - Lifecycle: `@BeforeAll`/`@AfterAll` for SparkSession, `@BeforeEach`/`@AfterEach` for test data
 - Manual DataFrame creation with `RowFactory` for test fixtures
@@ -191,6 +195,7 @@ Each component has: own `config/` directory, own test directory, own build confi
 - Never use spinning loaders — skeletons only
 - Never create shared config files across components — duplicate DB connection config per component
 - Never persist raw PII/PCI data — checks output aggregate metrics only via `DqMetric` interface contract
+- Never embed source data values in `detail_value` JSON payloads — `dq_metric_detail.detail_value` may contain field names, thresholds, scores, and reasons, but **never** source data values (dataset names, HDFS path segments, column content)
 - Never use `any` type in TypeScript
 
 **Brownfield Context:**

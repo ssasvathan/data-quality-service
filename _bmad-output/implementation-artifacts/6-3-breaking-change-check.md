@@ -409,6 +409,18 @@ BreakingChangeCheck inspects only schema structure (field paths/names) from `con
 - Architecture — Check extensibility: `_bmad-output/planning-artifacts/architecture.md`
 - Previous stories: `_bmad-output/implementation-artifacts/6-1-sla-countdown-check.md`, `_bmad-output/implementation-artifacts/6-2-zero-row-check.md`
 
+## Review Findings
+
+**Retroactive review — Epic 6 retrospective action item #4 (2026-04-04)**
+
+| # | Finding | Severity | Resolution |
+|---|---------|----------|------------|
+| 1 | **Hidden coupling to SchemaCheck JSON payload format**: `JdbcSchemaBaselineProvider` reads `dq_metric_detail` rows where `check_type = 'SCHEMA'` and `detail_type = 'schema_hash'`, then extracts the `schema_json` key from the stored JSON. If SchemaCheck changes its `schema_hash` payload structure (e.g., renames `schema_json` key), `BreakingChangeCheck` silently returns `Optional.empty()` (baseline_unavailable) on every run — no error, no alert, just a perpetual PASS. | Medium | Add format contract to both class Javadocs. SchemaCheck's `schema_hash` detail MUST preserve the `schema_json` key. Any change to SchemaCheck's payload format requires updating `JdbcSchemaBaselineProvider`. **Deferred to technical debt backlog.** |
+| 2 | **`baseline_unavailable` on first run is indistinguishable from missing JDBC wiring**: When `NoOpSchemaBaselineProvider` is used (no-arg constructor), every run returns `PASS/baseline_unavailable`. The same result occurs on a genuine first-run with the JDBC provider. Operators cannot tell from metrics alone whether the check is wired or not. | Low | Accepted. The distinction requires log-level context (INFO vs WARN). Once JDBC wiring is completed (Action #1), genuine first-runs will naturally transition to comparison runs. |
+| 3 | **`collectFieldNames` handles `ArrayType` but not `MapType`**: Map-typed fields are not recursed into, so a field like `metadata: Map<String, Struct>` would track only `metadata` and not its nested keys. If a map value type changes structurally, BreakingChangeCheck would not detect it. | Low | Accepted. MapType field names are tracked at the top level — struct removal inside a map value is out of scope for this check. Add note to class Javadoc if MapType nesting becomes a production concern. |
+
+**Verdict:** Approved with one deferred medium finding (SchemaCheck coupling documentation). No blocking issues.
+
 ## Dev Agent Record
 
 ### Agent Model Used

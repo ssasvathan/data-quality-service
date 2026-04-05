@@ -4,12 +4,15 @@ import com.bank.dqs.checks.BreakingChangeCheck;
 import com.bank.dqs.checks.CheckFactory;
 import com.bank.dqs.checks.ClassificationWeightedCheck;
 import com.bank.dqs.checks.CorrelationCheck;
+import com.bank.dqs.checks.CrossDestinationCheck;
 import com.bank.dqs.checks.DistributionCheck;
 import com.bank.dqs.checks.DqCheck;
 import com.bank.dqs.checks.DqsScoreCheck;
 import com.bank.dqs.checks.FreshnessCheck;
 import com.bank.dqs.checks.InferredSlaCheck;
+import com.bank.dqs.checks.LineageCheck;
 import com.bank.dqs.checks.OpsCheck;
+import com.bank.dqs.checks.OrphanDetectionCheck;
 import com.bank.dqs.checks.SchemaCheck;
 import com.bank.dqs.checks.SlaCountdownCheck;
 import com.bank.dqs.checks.SourceSystemHealthCheck;
@@ -311,7 +314,9 @@ public class DqsJob {
      * {@link OpsCheck}. Tier 2 checks: {@link SlaCountdownCheck}, {@link ZeroRowCheck},
      * {@link BreakingChangeCheck}, {@link DistributionCheck}, {@link TimestampSanityCheck}.
      * Tier 3 checks: {@link ClassificationWeightedCheck}, {@link SourceSystemHealthCheck},
-     * {@link CorrelationCheck}, {@link InferredSlaCheck} (Epic 7, Story 7.2).
+     * {@link CorrelationCheck}, {@link InferredSlaCheck} (Epic 7, Story 7.2),
+     * {@link LineageCheck}, {@link OrphanDetectionCheck}, {@link CrossDestinationCheck}
+     * (Epic 7, Story 7.3).
      *
      * <p>{@link DqsScoreCheck} is registered LAST — it reads from the {@code accumulator}
      * list which is populated by the other checks during the same dataset's run.
@@ -354,6 +359,15 @@ public class DqsJob {
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
         f.register(new InferredSlaCheck(                                           // Tier 3 — Epic 7, Story 7.2
                 new InferredSlaCheck.JdbcSlaHistoryProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new LineageCheck(                                               // Tier 3 — Epic 7, Story 7.3
+                new LineageCheck.JdbcLineageStatsProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new OrphanDetectionCheck(                                       // Tier 3 — Epic 7, Story 7.3
+                new OrphanDetectionCheck.JdbcCheckConfigProvider(
+                        () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
+        f.register(new CrossDestinationCheck(                                      // Tier 3 — Epic 7, Story 7.3
+                new CrossDestinationCheck.JdbcDestinationStatsProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
         // DqsScoreCheck is registered LAST — always runs after all other checks
         // Lambda captures the accumulator list: reads prior check results for score computation
