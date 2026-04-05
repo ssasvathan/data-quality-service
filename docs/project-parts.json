@@ -1,0 +1,89 @@
+{
+  "repository_type": "monorepo",
+  "parts": [
+    {
+      "part_id": "dqs-spark",
+      "project_type_id": "backend",
+      "display_name": "Java/Maven Spark Checks",
+      "root_path": "dqs-spark/",
+      "runtime": "Java 17",
+      "framework": "Spark 3.5.0",
+      "entry_point": "com.bank.dqs.DqsJob.main()",
+      "architecture_doc": "architecture-dqs-spark.md"
+    },
+    {
+      "part_id": "dqs-serve",
+      "project_type_id": "backend",
+      "display_name": "Python/FastAPI API + MCP",
+      "root_path": "dqs-serve/",
+      "runtime": "Python 3.12+",
+      "framework": "FastAPI 0.135+",
+      "entry_point": "uvicorn src.serve.main:app",
+      "architecture_doc": "architecture-dqs-serve.md"
+    },
+    {
+      "part_id": "dqs-orchestrator",
+      "project_type_id": "backend",
+      "display_name": "Python CLI Orchestrator",
+      "root_path": "dqs-orchestrator/",
+      "runtime": "Python 3.12+",
+      "framework": "CLI (argparse)",
+      "entry_point": "python -m orchestrator.cli",
+      "architecture_doc": "architecture-dqs-orchestrator.md"
+    },
+    {
+      "part_id": "dqs-dashboard",
+      "project_type_id": "web",
+      "display_name": "React/TypeScript SPA",
+      "root_path": "dqs-dashboard/",
+      "runtime": "TypeScript 5.9",
+      "framework": "React 19, Vite 8, MUI 7",
+      "entry_point": "src/main.tsx",
+      "architecture_doc": "architecture-dqs-dashboard.md"
+    }
+  ],
+  "integration_points": [
+    {
+      "from": "dqs-orchestrator",
+      "to": "dqs-spark",
+      "type": "Process Invocation",
+      "details": "spark-submit CLI, one per parent path"
+    },
+    {
+      "from": "dqs-spark",
+      "to": "PostgreSQL",
+      "type": "Database (JDBC)",
+      "details": "Write dq_run + metrics; read check_config + enrichment + baselines"
+    },
+    {
+      "from": "dqs-orchestrator",
+      "to": "PostgreSQL",
+      "type": "Database (psycopg2)",
+      "details": "Create/finalize orchestration_run; expire metrics on rerun"
+    },
+    {
+      "from": "dqs-serve",
+      "to": "PostgreSQL",
+      "type": "Database (SQLAlchemy)",
+      "details": "Read-only; queries v_*_active views"
+    },
+    {
+      "from": "dqs-dashboard",
+      "to": "dqs-serve",
+      "type": "HTTP REST",
+      "details": "/api/* endpoints via Vite proxy"
+    },
+    {
+      "from": "MCP Client",
+      "to": "dqs-serve",
+      "type": "MCP over HTTP",
+      "details": "/mcp/ mount point, 3 LLM tools"
+    },
+    {
+      "from": "dqs-orchestrator",
+      "to": "SMTP Server",
+      "type": "SMTP",
+      "details": "Summary email with failure categorization"
+    }
+  ]
+}
