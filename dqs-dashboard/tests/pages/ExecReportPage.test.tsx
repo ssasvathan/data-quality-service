@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 7.4: Executive Reporting Suite
+ * ATDD Component Tests — Executive Reporting Suite
  *
  * TDD RED PHASE: ExecReportPage does not exist yet. useExecutiveReport hook
  * is not defined in queries.ts. TypeScript interfaces (LobMonthlyScore,

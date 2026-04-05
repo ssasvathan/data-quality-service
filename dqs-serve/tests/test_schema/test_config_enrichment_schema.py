@@ -1,4 +1,4 @@
-"""Acceptance tests for Story 1-4: Configuration & Enrichment Schema.
+"""Acceptance tests for configuration and enrichment schema.
 
 Table coverage:
   - check_config      (AC1, AC3, AC5)

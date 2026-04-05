@@ -1,4 +1,4 @@
-"""Acceptance tests — Story 5.1 & 5.2: FastMCP Tool Registration, Failure Query, Trending & Comparison Tools.
+"""Acceptance tests for FastMCP tool registration, failure query, trending and comparison tools.
 
 Test categories:
   - Unit tests (no DB, mock session): verify tool registration, response formats
@@ -8,12 +8,10 @@ Test categories:
 Run unit tests:     cd dqs-serve && uv run pytest tests/test_mcp/test_tools.py
 Run integration:    cd dqs-serve && uv run pytest -m integration tests/test_mcp/test_tools.py
 
-Story 5.1 Acceptance Criteria:
+Acceptance Criteria:
   AC1: FastMCP tools registered and discoverable by LLM clients when serve starts
   AC2: failure query tool returns formatted text: count, dataset names, check types, LOB grouping
   AC3: no failures → "All datasets passed in the latest run ({timestamp}). {N} datasets processed."
-
-Story 5.2 Acceptance Criteria:
   AC1: query_dataset_trend returns current DQS score, trend direction, score history, flagged checks
   AC2: compare_lob_quality returns LOBs ranked by DQS score ascending, with dataset counts and top failing checks
   AC3: unknown dataset → "No dataset found matching '{query}'."
@@ -736,7 +734,7 @@ class TestQueryFailuresIntegration:
 
 
 # ===========================================================================
-# Story 5.2: MCP Trending & Comparison Tools
+# MCP Trending & Comparison Tools
 # ===========================================================================
 #
 # Acceptance Criteria:
@@ -748,7 +746,7 @@ class TestQueryFailuresIntegration:
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Story 5.2 — Mock DB helpers
+# Mock DB helpers
 # ---------------------------------------------------------------------------
 
 _TREND_DATASET_ROW = {
@@ -955,7 +953,7 @@ def _make_mock_db_for_lob_comparison_empty() -> MagicMock:
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — Story 5.2 Tool Registration
+# Unit tests — Tool Registration
 # ---------------------------------------------------------------------------
 
 
@@ -1111,7 +1109,7 @@ class TestCompareLobQualityRegistration:
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — Story 5.2 query_dataset_trend response format (mock DB)
+# Unit tests — query_dataset_trend response format (mock DB)
 # ---------------------------------------------------------------------------
 
 
@@ -1303,7 +1301,7 @@ class TestQueryDatasetTrendResponseFormat:
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — Story 5.2 compare_lob_quality response format (mock DB)
+# Unit tests — compare_lob_quality response format (mock DB)
 # ---------------------------------------------------------------------------
 
 
@@ -1463,7 +1461,7 @@ class TestCompareLobQualityResponseFormat:
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — Story 5.2 query_dataset_trend uses correct SQL patterns
+# Unit tests — query_dataset_trend uses correct SQL patterns
 # ---------------------------------------------------------------------------
 
 
@@ -1532,7 +1530,7 @@ class TestQueryDatasetTrendQueryPatterns:
 
 
 # ---------------------------------------------------------------------------
-# Integration tests — Story 5.2 (require real Postgres + seeded data)
+# Integration tests (require real Postgres + seeded data)
 # ---------------------------------------------------------------------------
 
 

@@ -447,7 +447,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <ToggleButton value="90d">90d</ToggleButton>
           </ToggleButtonGroup>
 
-          {/* GlobalSearch — full Autocomplete implementation (Story 4.13) */}
+          {/* GlobalSearch — full Autocomplete implementation */}
           <GlobalSearch />
         </Toolbar>
       </AppBar>

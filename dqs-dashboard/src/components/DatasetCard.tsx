@@ -1,5 +1,5 @@
 /**
- * DatasetCard (LOB Card) — Story 4.7
+ * DatasetCard (LOB Card)
  *
  * Displays a LOB-level health summary card with DQS score, trend sparkline,
  * and pass/warn/fail status count chips.

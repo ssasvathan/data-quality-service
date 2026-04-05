@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 4.10: LOB Detail View (Level 2)
+ * ATDD Component Tests — LOB Detail View (Level 2)
  *
  * RED PHASE: All tests use it() — LobDetailPage is a placeholder,
  * useLobDatasets does not exist, DatasetInLob / LobDatasetsResponse types
@@ -680,12 +680,12 @@ describe('[P0] LobDetailPage — useLobDatasets hook integration', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC2: isFetching stale-while-revalidate opacity on TrendSparkline
+// isFetching stale-while-revalidate opacity
 // RED PHASE: LobDetailPage does not yet destructure isFetching or apply opacity
 // to the TrendSparkline renderCell in the DataGrid columns definition.
 // ---------------------------------------------------------------------------
 
-describe('[P0] LobDetailPage — isFetching opacity on trend sparklines (AC2, Story 4.14)', () => {
+describe('[P0] LobDetailPage — isFetching opacity on trend sparklines', () => {
   it('[P0] TrendSparkline wrapper has opacity 0.5 when isFetching is true', () => {
     // THIS TEST WILL FAIL — LobDetailPage does not yet use isFetching from useLobDatasets
     // Implementation: destructure isFetching from useLobDatasets(), apply to renderCell:

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>ALL tests in this file are annotated with {@code @Disabled} because
  * {@code DqsScoreCheck}, {@code ScoreInputProvider}, and {@code WeightProvider}
- * do not exist yet. Once Story 2-9 is implemented, remove {@code @Disabled}
+ * do not exist yet. Once implemented, remove {@code @Disabled}
  * from each test and verify all pass (TDD green phase).
  *
  * <p>No SparkSession is required — DqsScoreCheck processes in-memory DqMetric

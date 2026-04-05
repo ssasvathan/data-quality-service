@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 4.9: Summary Card Grid View (Level 1)
+ * ATDD Component Tests — Summary Card Grid View (Level 1)
  *
  * RED PHASE: All tests skipped — SummaryPage is a placeholder, useSummary
  * does not exist, LobSummaryItem / SummaryResponse types are not yet defined.
@@ -615,11 +615,11 @@ describe('[P1] SummaryPage — empty state (edge case)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC2: isFetching stale-while-revalidate opacity on DatasetCards
+// isFetching stale-while-revalidate opacity
 // RED PHASE: SummaryPage does not yet destructure isFetching or apply opacity.
 // ---------------------------------------------------------------------------
 
-describe('[P0] SummaryPage — isFetching opacity indicator (AC2, Story 4.14)', () => {
+describe('[P0] SummaryPage — isFetching opacity indicator', () => {
   it('[P0] wraps DatasetCard grid items in a Box with opacity 0.5 when isFetching is true', () => {
     // THIS TEST WILL FAIL — SummaryPage does not yet use isFetching from useSummary
     // Implementation: destructure isFetching from useSummary(), wrap each Grid item
@@ -690,12 +690,12 @@ describe('[P0] SummaryPage — isFetching opacity indicator (AC2, Story 4.14)', 
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC8: Network error → full-page "Unable to connect to DQS"
+// Network error → full-page "Unable to connect to DQS"
 // RED PHASE: SummaryPage currently shows generic "Failed to load summary data"
 // for all errors. AC8 requires a specific full-page message for network failures.
 // ---------------------------------------------------------------------------
 
-describe('[P0] SummaryPage — API unreachable full-page error (AC8, Story 4.14)', () => {
+describe('[P0] SummaryPage — API unreachable full-page error', () => {
   it('[P0] renders full-page unreachable message when error is a network TypeError', () => {
     // THIS TEST WILL FAIL — SummaryPage does not yet distinguish network errors
     // Implementation (preferred approach from Dev Notes):
@@ -800,7 +800,7 @@ describe('[P0] SummaryPage — rendering stability', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC4: 1280px viewport — 3-column LOB card grid
+// 1280px viewport — 3-column LOB card grid
 //
 // GREEN PHASE: SummaryPage uses size={{ xs: 12, sm: 6, md: 4 }}.
 // These tests verify the Grid item MUI size props are correct for the
@@ -808,7 +808,7 @@ describe('[P0] SummaryPage — rendering stability', () => {
 // With the custom breakpoints: md=1280px → 3-col (md:4 = 33%), sm=1024px → 2-col (sm:6 = 50%)
 // ---------------------------------------------------------------------------
 
-describe('[P1] SummaryPage — Grid size props for 3-column layout (AC4, Story 4.15)', () => {
+describe('[P1] SummaryPage — Grid size props for 3-column layout', () => {
   it('[P1] Grid items have size={{ xs: 12, sm: 6, md: 4 }} for responsive column count', () => {
     // With custom breakpoints in theme.ts:
     //   md: 1280 → size md:4 gives 3 columns at standard 1280px viewport (AC4)
@@ -854,13 +854,13 @@ describe('[P1] SummaryPage — Grid size props for 3-column layout (AC4, Story 4
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC6: < 1280px viewport — 2-column reflow
+// < 1280px viewport — 2-column reflow
 //
 // GREEN PHASE: Grid size sm:6 exists in SummaryPage.tsx.
 // The 2-column behavior at <1280px is enabled by sm:1024 in theme.ts.
 // ---------------------------------------------------------------------------
 
-describe('[P1] SummaryPage — 2-column reflow below 1280px (AC6, Story 4.15)', () => {
+describe('[P1] SummaryPage — 2-column reflow below 1280px', () => {
   it('[P1] Grid items have sm:6 size prop for 2-column layout below md breakpoint', () => {
     // AC6: below 1280px (below md with custom breakpoints) → 2 columns
     // The Grid size sm:6 already exists — this test verifies no regression

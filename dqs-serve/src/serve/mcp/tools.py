@@ -101,7 +101,7 @@ _CHECK_TYPES_SQL = text(
 )
 
 # ---------------------------------------------------------------------------
-# SQL for story 5.2 tools — active-record views only, never raw tables
+# SQL for trending/comparison tools — active-record views only, never raw tables
 # ---------------------------------------------------------------------------
 
 _TREND_DATASET_SEARCH_SQL = text(

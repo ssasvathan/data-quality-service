@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 4.8: AppLayout with Fixed Header, Routing & React Query
+ * ATDD Component Tests — AppLayout with Fixed Header, Routing & React Query
  *
  * GREEN PHASE: All tests pass — implementation complete.
  *
@@ -26,7 +26,7 @@ import { TimeRangeProvider } from '../../src/context/TimeRangeContext'
 
 // ---------------------------------------------------------------------------
 // Mock useSearch and all existing hooks so GlobalSearch renders without errors.
-// useSearch is introduced in Story 4.13 — mocked here so tests control data.
+// useSearch mocked here so tests control data.
 // Existing hooks mocked to return idle state so existing AppLayout behaviour holds.
 // ---------------------------------------------------------------------------
 
@@ -313,7 +313,7 @@ describe('[P0] AppLayout — rendering stability', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC5: LastUpdatedIndicator in header
+// LastUpdatedIndicator in header
 //
 // RED PHASE: AppLayout does not yet have a LastUpdatedIndicator component.
 // useSummary is currently mocked to return { data: undefined, isLoading: false }.
@@ -327,7 +327,7 @@ describe('[P0] AppLayout — rendering stability', () => {
 //   - Place <LastUpdatedIndicator /> in Toolbar between AppBreadcrumbs and time range toggle
 // ---------------------------------------------------------------------------
 
-describe('[P0] AppLayout — LastUpdatedIndicator stale data amber warning (AC5, Story 4.14)', () => {
+describe('[P0] AppLayout — LastUpdatedIndicator stale data amber warning', () => {
   it('[P0] shows last_run_at in amber text when data is more than 24 hours old', () => {
     // THIS TEST WILL FAIL — LastUpdatedIndicator does not yet exist in AppLayout
     // Implementation: compare last_run_at timestamp to Date.now(), if >24h use color: 'warning.main'
@@ -435,7 +435,7 @@ describe('[P0] AppLayout — LastUpdatedIndicator stale data amber warning (AC5,
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC6: RunFailedBanner below header
+// RunFailedBanner below header
 //
 // RED PHASE: AppLayout does not yet have a RunFailedBanner component.
 //
@@ -448,7 +448,7 @@ describe('[P0] AppLayout — LastUpdatedIndicator stale data amber warning (AC5,
 //   - Dismissible: local useState<boolean> — dismissed defaults false
 // ---------------------------------------------------------------------------
 
-describe('[P0] AppLayout — RunFailedBanner when latest run failed (AC6, Story 4.14)', () => {
+describe('[P0] AppLayout — RunFailedBanner when latest run failed', () => {
   it('[P0] renders yellow banner when useSummary returns run_failed=true', () => {
     // THIS TEST WILL FAIL — RunFailedBanner does not yet exist in AppLayout
     vi.mocked(useSummary).mockReturnValue({
@@ -569,14 +569,14 @@ describe('[P0] AppLayout — RunFailedBanner when latest run failed (AC6, Story 
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC1: Skip link renders with correct href and text
+// Skip link renders with correct href and text
 //
 // GREEN PHASE: The skip link already exists in AppLayout.tsx.
 // These tests confirm the existing implementation is correct and that
 // AC1 requirements are formally covered.
 // ---------------------------------------------------------------------------
 
-describe('[P0] AppLayout — skip link (AC1, Story 4.15)', () => {
+describe('[P0] AppLayout — skip link', () => {
   it('[P0] skip link renders with href="#main-content"', () => {
     // Requirement: Skip link href must be exactly "#main-content"
     renderAppLayout('/')
@@ -593,13 +593,13 @@ describe('[P0] AppLayout — skip link (AC1, Story 4.15)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC1 + AC2: Main landmark with id="main-content"
+// Main landmark with id="main-content"
 //
 // GREEN PHASE: <main id="main-content"> exists.
 // This test formally covers AC1 (skip target) and AC2 (landmark navigation).
 // ---------------------------------------------------------------------------
 
-describe('[P0] AppLayout — main landmark (AC1, AC2, Story 4.15)', () => {
+describe('[P0] AppLayout — main landmark', () => {
   it('[P0] <main> landmark has id="main-content" as skip target', () => {
     // AC1: The skip link target <main id="main-content"> must exist
     renderAppLayout('/')
@@ -609,13 +609,13 @@ describe('[P0] AppLayout — main landmark (AC1, AC2, Story 4.15)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC2: Time range toggle has aria-label="time range"
+// Time range toggle has aria-label="time range"
 //
 // GREEN PHASE: ToggleButtonGroup aria-label="time range" exists.
 // Formally covering AC2 requirement for screen reader accessible toggle.
 // ---------------------------------------------------------------------------
 
-describe('[P1] AppLayout — time range toggle accessibility (AC2, Story 4.15)', () => {
+describe('[P1] AppLayout — time range toggle accessibility', () => {
   it('[P1] time range ToggleButtonGroup has aria-label="time range"', () => {
     // AC2: all interactive elements have accessible names for screen readers
     renderAppLayout('/')
@@ -626,12 +626,12 @@ describe('[P1] AppLayout — time range toggle accessibility (AC2, Story 4.15)',
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC3: aria-live region for data-update announcements
+// aria-live region for data-update announcements
 //
 // GREEN PHASE: aria-live region is implemented in AppLayout.tsx.
 // ---------------------------------------------------------------------------
 
-describe('[P0] AppLayout — aria-live region for data updates (AC3, Story 4.15)', () => {
+describe('[P0] AppLayout — aria-live region for data updates', () => {
   it('[P0] renders an aria-live="polite" region in the DOM', () => {
     // AC3: visually-hidden <Box aria-live="polite" aria-atomic="true"> is the
     // first child of the outer Box wrapper, before the skip link
@@ -675,12 +675,12 @@ describe('[P0] AppLayout — aria-live region for data updates (AC3, Story 4.15)
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC3: Live region announces "Data updated for {range} range"
+// Live region announces "Data updated for {range} range"
 //
 // GREEN PHASE: liveMessage state and isFetching useEffect are implemented.
 // ---------------------------------------------------------------------------
 
-describe('[P0] AppLayout — live region message after time range change (AC3, Story 4.15)', () => {
+describe('[P0] AppLayout — live region message after time range change', () => {
   it('[P0] live region text is set to "Data updated for 30d range" after timeRange change and refetch', () => {
     // Test approach: mock useSummary to return isFetching: false initially (simulating
     // post-refetch state), then change timeRange to trigger the effect.
@@ -725,12 +725,12 @@ describe('[P0] AppLayout — live region message after time range change (AC3, S
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC5: Max-width centering at > 1440px viewports
+// Max-width centering at > 1440px viewports
 //
 // GREEN PHASE: AppLayout wraps <main> content with a max-width 1440px Box.
 // ---------------------------------------------------------------------------
 
-describe('[P1] AppLayout — max-width centering for wide viewports (AC5, Story 4.15)', () => {
+describe('[P1] AppLayout — max-width centering for wide viewports', () => {
   it('[P1] main content is wrapped in a Box with maxWidth 1440px', () => {
     // AC5: inside <Box component="main" id="main-content">,
     // {children} are wrapped in a Box with maxWidth: 1440px, mx: 'auto', width: '100%'
@@ -762,14 +762,14 @@ describe('[P1] AppLayout — max-width centering for wide viewports (AC5, Story 
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC7 + AC8: @axe-core/react configured (static/structural check)
+// @axe-core/react configured (static/structural check)
 //
 // GREEN PHASE: @axe-core/react is installed and initialized in main.tsx.
 // These tests validate structural WCAG 2.1 AA compliance.
 // Full axe violation scanning is done in browser dev mode (not via Vitest).
 // ---------------------------------------------------------------------------
 
-describe('[P1] AppLayout — axe-core integration (AC7, AC8, Story 4.15)', () => {
+describe('[P1] AppLayout — axe-core integration', () => {
   it('[P1] AppLayout renders without any ARIA structure violations (structural)', () => {
     // Validates that the DOM structure required for axe-core compliance is present:
     //   - aria-live region with correct attributes

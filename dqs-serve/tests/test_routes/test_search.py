@@ -1,4 +1,4 @@
-"""Acceptance tests — Story 4.4: GET /api/search endpoint.
+"""Acceptance tests for GET /api/search endpoint.
 
 Test categories:
   - Unit tests (no DB, mock session): verify route wiring, Pydantic model shapes,

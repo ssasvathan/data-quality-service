@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Source System Health check (Tier 3 — Epic 7, Story 7.1).
+ * Source System Health check (Tier 3).
  *
  * <p>Aggregates DQS history across all datasets sharing the same {@code src_sys_nm}
  * path segment (parsed from {@code context.getDatasetName()}). Queries {@code v_dq_run_active}

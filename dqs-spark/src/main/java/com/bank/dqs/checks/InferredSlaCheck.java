@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Inferred SLA check (Tier 3 — Epic 7, Story 7.2).
+ * Inferred SLA check (Tier 3).
  *
  * <p>Infers an SLA window from 30 days of historical freshness data for datasets that have
  * no explicit SLA configured in {@code dataset_enrichment}. Queries

@@ -1,4 +1,4 @@
-"""Acceptance tests — Story 7.4: GET /api/executive/report endpoint.
+"""Acceptance tests for GET /api/executive/report endpoint.
 
 TDD RED PHASE: All tests assert EXPECTED behavior per acceptance criteria.
 Tests will fail until the endpoint is implemented.

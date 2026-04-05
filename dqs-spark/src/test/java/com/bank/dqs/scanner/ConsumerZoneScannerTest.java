@@ -255,7 +255,7 @@ class ConsumerZoneScannerTest {
 
         assertEquals(1, results.size());
         assertNull(results.get(0).getDf(),
-                "df should be null - loaded later by DqsJob in story 2.3");
+                "df should be null - loaded later by DqsJob");
     }
 
     // ---------------------------------------------------------------------------

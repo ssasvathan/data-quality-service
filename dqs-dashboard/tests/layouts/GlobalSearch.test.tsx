@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 4.13: Global Dataset Search
+ * ATDD Component Tests — Global Dataset Search
  *
  * GREEN PHASE: All tests pass — implementation complete.
  *
@@ -28,7 +28,7 @@ import type { SearchResult } from '../../src/api/types'
 
 // ---------------------------------------------------------------------------
 // Mock useSearch and all existing hooks so GlobalSearch renders without errors.
-// useSearch is introduced in Story 4.13 — mocked here so tests control data.
+// useSearch mocked here so tests control data.
 // Existing hooks mocked to return idle state so existing AppLayout behaviour holds.
 // ---------------------------------------------------------------------------
 

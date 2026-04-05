@@ -367,7 +367,7 @@ public final class DqsScoreCheck implements DqCheck {
     /**
      * JDBC-based weight provider. Reads custom weights from {@code check_config} or
      * {@code dataset_enrichment}. For MVP this implementation falls back to defaults;
-     * full JDBC resolution is wired in Story 2.10.
+     * full JDBC resolution is pending.
      */
     public static final class JdbcWeightProvider implements WeightProvider {
 
@@ -379,7 +379,7 @@ public final class DqsScoreCheck implements DqCheck {
 
         @Override
         public Map<String, Double> getWeights(DatasetContext context) throws Exception {
-            // MVP: fall back to defaults — full JDBC resolution wired in Story 2.10
+            // MVP: fall back to defaults — full JDBC resolution pending
             return fallback.getWeights(context);
         }
     }

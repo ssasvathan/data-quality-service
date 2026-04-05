@@ -1,4 +1,4 @@
-"""Acceptance tests for Story 1-7: Create Test Data Fixtures.
+"""Acceptance tests for test data fixtures.
 
 Validates that fixtures.sql loads cleanly and populates the schema with:
   - AC1: 3+ mock source systems covering Avro and Parquet formats

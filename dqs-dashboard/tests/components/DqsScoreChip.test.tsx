@@ -1,5 +1,5 @@
 /**
- * Component Tests — Story 4.6: DqsScoreChip
+ * Component Tests — DqsScoreChip
  *
  * @testing-framework Vitest + React Testing Library + MUI ThemeProvider
  */

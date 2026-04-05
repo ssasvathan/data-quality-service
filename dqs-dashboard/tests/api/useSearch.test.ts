@@ -1,5 +1,5 @@
 /**
- * ATDD Hook Tests — Story 4.13: Global Dataset Search
+ * ATDD Hook Tests — Global Dataset Search
  *
  * GREEN PHASE: All tests pass — implementation complete.
  *

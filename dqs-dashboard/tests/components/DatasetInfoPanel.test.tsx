@@ -1,5 +1,5 @@
 /**
- * Component Tests — Story 4.11: DatasetInfoPanel
+ * Component Tests — DatasetInfoPanel
  *
  * GREEN PHASE: All tests enabled — DatasetInfoPanel is fully implemented.
  *

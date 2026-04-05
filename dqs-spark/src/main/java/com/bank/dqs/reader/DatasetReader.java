@@ -15,8 +15,8 @@ import static com.bank.dqs.model.DatasetContext.FORMAT_UNKNOWN;
 /**
  * Reads dataset files from HDFS (Avro or Parquet) into Spark DataFrames.
  *
- * <p>Story 2.3: This class populates the {@code df} field of a {@link DatasetContext}
- * that was produced by {@code ConsumerZoneScanner} (story 2.2) with {@code df = null}.
+ * <p>This class populates the {@code df} field of a {@link DatasetContext}
+ * that was produced by {@code ConsumerZoneScanner} with {@code df = null}.
  *
  * <p>Full HDFS path = {@code ctx.getParentPath() + "/" + ctx.getDatasetName()}.
  *

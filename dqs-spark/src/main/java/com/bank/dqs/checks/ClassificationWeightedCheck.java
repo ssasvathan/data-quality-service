@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Classification-Weighted Alerting check (Tier 3 — Epic 7, Story 7.1).
+ * Classification-Weighted Alerting check (Tier 3).
  *
  * <p>Resolves the dataset's LOB classification from {@code v_lob_lookup_active}
  * (via {@code context.getLookupCode()}) and emits:

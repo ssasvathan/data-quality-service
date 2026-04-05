@@ -1,5 +1,5 @@
 /**
- * DqsScoreChip — Story 4.6
+ * DqsScoreChip
  *
  * Displays a DQS score with optional trend arrow and delta.
  * Composed from Box + Typography — NOT using MUI Chip component.

@@ -1,4 +1,4 @@
-"""Acceptance tests — Story 4.2: GET /api/lobs and GET /api/lobs/{lob_id}/datasets endpoints.
+"""Acceptance tests for GET /api/lobs and GET /api/lobs/{lob_id}/datasets endpoints.
 
 TDD RED PHASE: All tests are marked @pytest.mark.skip because the endpoints
 do not exist yet. Tests assert EXPECTED behavior per acceptance criteria.

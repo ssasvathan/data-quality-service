@@ -1,5 +1,5 @@
 /**
- * Component Tests — Story 4.7: DatasetCard (LOB Card)
+ * Component Tests — DatasetCard (LOB Card)
  *
  * GREEN PHASE: All tests are active (using it() — not it.skip()).
  * DatasetCard is fully implemented. All 33 tests pass.
@@ -328,13 +328,13 @@ describe('[P0] DatasetCard — rendering stability', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC2: Keyboard accessibility confirmation (no regression)
+// Keyboard accessibility confirmation (no regression)
 //
 // GREEN PHASE: These behaviors already exist in DatasetCard.
-// The tests below confirm no regression and formally cover AC2 for Story 4.15.
+// The tests below confirm no regression for keyboard accessibility.
 // ---------------------------------------------------------------------------
 
-describe('[P0] DatasetCard — keyboard accessibility (AC2, Story 4.15)', () => {
+describe('[P0] DatasetCard — keyboard accessibility', () => {
   it('[P0] card has role="button" for keyboard accessibility (AC2 regression check)', () => {
     // AC2: All interactive elements (cards) are focusable and activatable
     // DatasetCard must have role="button" — already exists, confirm no regression
@@ -369,13 +369,13 @@ describe('[P0] DatasetCard — keyboard accessibility (AC2, Story 4.15)', () => 
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.15 — AC2: aria-label includes LOB name, score, count, status summary
+// aria-label includes LOB name, score, count, status summary
 //
 // GREEN PHASE: DatasetCard already has an aria-label — confirming no regression
 // and that the full context is present per AC2 ("accessible and activatable").
 // ---------------------------------------------------------------------------
 
-describe('[P1] DatasetCard — aria-label for screen readers (AC2, Story 4.15)', () => {
+describe('[P1] DatasetCard — aria-label for screen readers', () => {
   it('[P1] card aria-label contains LOB name for screen reader context (AC2)', () => {
     // AC2: screen reader users need full context from aria-label
     renderWithTheme(<DatasetCard {...DEFAULT_PROPS} />)

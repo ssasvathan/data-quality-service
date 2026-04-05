@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 4.8: TimeRangeContext
+ * ATDD Component Tests — TimeRangeContext
  *
  * GREEN PHASE: All tests pass — implementation complete.
  *

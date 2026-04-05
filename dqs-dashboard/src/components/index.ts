@@ -1,5 +1,5 @@
 /**
- * Components barrel export — Story 4.6/4.7/4.11
+ * Components barrel export
  *
  * UI component exports — add new components here as they are created.
  * Downstream: import { DqsScoreChip, TrendSparkline, DatasetCard, DatasetInfoPanel } from '../components'

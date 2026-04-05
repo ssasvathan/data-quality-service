@@ -29,7 +29,7 @@ import java.util.List;
  * <p>Each {@code src_sys_nm} subdirectory under the partition date directory is treated
  * as a dataset. The scanner extracts the dataset name, lookup code, partition date,
  * and file format, producing a {@link DatasetContext} with {@code df = null} (the
- * DataFrame is loaded later by DqsJob in story 2.3).
+ * DataFrame is loaded later by DqsJob).
  */
 public class ConsumerZoneScanner implements PathScanner {
 
@@ -137,7 +137,7 @@ public class ConsumerZoneScanner implements PathScanner {
                     lookupCode,
                     partitionDate,
                     parentPath,
-                    null,   // df loaded later by DqsJob (story 2.3)
+                    null,   // df loaded later by DqsJob
                     format
             );
 

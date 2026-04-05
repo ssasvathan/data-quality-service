@@ -1,4 +1,4 @@
-"""Acceptance tests for Story 1-3: Metric storage schema (dq_metric_numeric + dq_metric_detail).
+"""Acceptance tests for metric storage schema (dq_metric_numeric + dq_metric_detail).
 
 Test categories:
   - Integration tests (real Postgres): verify tables, columns, constraints, FK, uniqueness

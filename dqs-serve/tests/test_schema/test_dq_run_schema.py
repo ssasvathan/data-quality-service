@@ -1,4 +1,4 @@
-"""Acceptance tests for Story 1-2: Core dq_run schema with temporal pattern.
+"""Acceptance tests for core dq_run schema with temporal pattern.
 
 Test categories:
   - Structural tests (no DB): verify EXPIRY_SENTINEL constant — run in default suite

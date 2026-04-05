@@ -1,9 +1,9 @@
 /**
- * DatasetInfoPanel — Story 4.11
+ * DatasetInfoPanel
  *
  * Pure display component for dataset metadata. Accepts DatasetDetail as props.
  * No API calls, no React Query hooks, no routing logic.
- * Parent page (Story 4.12) handles data fetching and passes props.
+ * Parent page handles data fetching and passes props.
  *
  * Semantic dl/dt/dd structure for screen reader accessibility (AC5).
  */

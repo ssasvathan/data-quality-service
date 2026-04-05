@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Unit tests for {@link EnrichmentResolver}.
  *
  * <p>Uses H2 in-memory database with a {@code v_dataset_enrichment_active} VIEW
- * matching the Postgres schema from story 1-4 DDL. H2 supports the LIMIT syntax
+ * matching the Postgres schema DDL. H2 supports the LIMIT syntax
  * used in the resolver's SQL and the {@code LIKE} reversal pattern.
  *
  * <p>Test naming follows the project {@code <action><expectation>} convention.

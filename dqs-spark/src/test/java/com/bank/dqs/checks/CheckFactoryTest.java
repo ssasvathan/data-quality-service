@@ -313,7 +313,7 @@ class CheckFactoryTest {
     }
 
     // ---------------------------------------------------------------------------
-    // Story 2-9: DqsScoreCheck registration
+    // DqsScoreCheck registration
     // ---------------------------------------------------------------------------
 
     @Test

@@ -216,7 +216,7 @@ public class DqsJob {
         String parentPath = jobArgs.parentPath();
         LocalDate partitionDate = jobArgs.partitionDate();
 
-        // TODO (epic-3): include run_id in log messages once run_id is assigned by the orchestrator
+        // TODO: include run_id in log messages once run_id is assigned by the orchestrator
         LOG.info("DqsJob started: parentPath={}, date={}", parentPath, partitionDate);
 
         SparkSession spark = SparkSession.builder()
@@ -314,9 +314,8 @@ public class DqsJob {
      * {@link OpsCheck}. Tier 2 checks: {@link SlaCountdownCheck}, {@link ZeroRowCheck},
      * {@link BreakingChangeCheck}, {@link DistributionCheck}, {@link TimestampSanityCheck}.
      * Tier 3 checks: {@link ClassificationWeightedCheck}, {@link SourceSystemHealthCheck},
-     * {@link CorrelationCheck}, {@link InferredSlaCheck} (Epic 7, Story 7.2),
-     * {@link LineageCheck}, {@link OrphanDetectionCheck}, {@link CrossDestinationCheck}
-     * (Epic 7, Story 7.3).
+     * {@link CorrelationCheck}, {@link InferredSlaCheck},
+     * {@link LineageCheck}, {@link OrphanDetectionCheck}, {@link CrossDestinationCheck}.
      *
      * <p>{@link DqsScoreCheck} is registered LAST — it reads from the {@code accumulator}
      * list which is populated by the other checks during the same dataset's run.
@@ -334,39 +333,39 @@ public class DqsJob {
         f.register(new VolumeCheck());
         f.register(new SchemaCheck());
         f.register(new OpsCheck());
-        f.register(new SlaCountdownCheck(                                          // Tier 2 — Epic 6, Story 6.1
+        f.register(new SlaCountdownCheck(                                          // Tier 2
                 new SlaCountdownCheck.JdbcSlaProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass)),
                 Clock.systemDefaultZone()));
-        f.register(new ZeroRowCheck());                                            // Tier 2 — Epic 6, Story 6.2
-        f.register(new BreakingChangeCheck(                                        // Tier 2 — Epic 6, Story 6.3
+        f.register(new ZeroRowCheck());                                            // Tier 2
+        f.register(new BreakingChangeCheck(                                        // Tier 2
                 new BreakingChangeCheck.JdbcSchemaBaselineProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new DistributionCheck(                                          // Tier 2 — Epic 6, Story 6.4
+        f.register(new DistributionCheck(                                          // Tier 2
                 new DistributionCheck.JdbcExplodeConfigProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass)),
                 new DistributionCheck.JdbcBaselineStatsProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new TimestampSanityCheck());                                    // Tier 2 — Epic 6, Story 6.5
-        f.register(new ClassificationWeightedCheck(                                // Tier 3 — Epic 7, Story 7.1
+        f.register(new TimestampSanityCheck());                                    // Tier 2
+        f.register(new ClassificationWeightedCheck(                                // Tier 3
                 new ClassificationWeightedCheck.JdbcClassificationProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new SourceSystemHealthCheck(                                    // Tier 3 — Epic 7, Story 7.1
+        f.register(new SourceSystemHealthCheck(                                    // Tier 3
                 new SourceSystemHealthCheck.JdbcSourceSystemStatsProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new CorrelationCheck(                                           // Tier 3 — Epic 7, Story 7.2
+        f.register(new CorrelationCheck(                                           // Tier 3
                 new CorrelationCheck.JdbcCorrelationStatsProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new InferredSlaCheck(                                           // Tier 3 — Epic 7, Story 7.2
+        f.register(new InferredSlaCheck(                                           // Tier 3
                 new InferredSlaCheck.JdbcSlaHistoryProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new LineageCheck(                                               // Tier 3 — Epic 7, Story 7.3
+        f.register(new LineageCheck(                                               // Tier 3
                 new LineageCheck.JdbcLineageStatsProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new OrphanDetectionCheck(                                       // Tier 3 — Epic 7, Story 7.3
+        f.register(new OrphanDetectionCheck(                                       // Tier 3
                 new OrphanDetectionCheck.JdbcCheckConfigProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
-        f.register(new CrossDestinationCheck(                                      // Tier 3 — Epic 7, Story 7.3
+        f.register(new CrossDestinationCheck(                                      // Tier 3
                 new CrossDestinationCheck.JdbcDestinationStatsProvider(
                         () -> DriverManager.getConnection(jdbcUrl, dbUser, dbPass))));
         // DqsScoreCheck is registered LAST — always runs after all other checks

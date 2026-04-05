@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Integration tests for {@link ConsumerZoneScanner} enrichment behavior (Story 2.4).
+ * Integration tests for {@link ConsumerZoneScanner} enrichment behavior.
  *
  * <p>Tests the new two-argument constructor {@code ConsumerZoneScanner(FileSystem, EnrichmentResolver)}
  * and verifies that the {@code lookupCode} field in the returned {@link DatasetContext} is correctly

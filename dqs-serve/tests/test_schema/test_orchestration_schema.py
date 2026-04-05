@@ -1,4 +1,4 @@
-"""Acceptance tests for Story 1-5: Orchestration Schema.
+"""Acceptance tests for orchestration schema.
 
 Table coverage:
   - dq_orchestration_run (AC1, AC3)

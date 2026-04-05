@@ -1,6 +1,6 @@
 /**
  * ExecReportPage — Executive Reporting Suite
- * Story 7.4: Strategic dashboards for executive-level quality reporting.
+ * Strategic dashboards for executive-level quality reporting.
  *
  * Three sections:
  *  1. LOB Monthly Scorecard — cross-LOB DQS scores for the last 3 months

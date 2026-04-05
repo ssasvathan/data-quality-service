@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Orphan Detection check (Tier 3 — Epic 7, Story 7.3).
+ * Orphan Detection check (Tier 3).
  *
  * <p>Detects datasets that have DQS run history but no active {@code check_config} entries —
  * datasets being processed by the Spark job without any quality checks configured. Queries

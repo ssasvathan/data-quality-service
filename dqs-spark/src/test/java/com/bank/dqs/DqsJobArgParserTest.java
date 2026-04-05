@@ -130,7 +130,7 @@ class DqsJobArgParserTest {
     }
 
     // ---------------------------------------------------------------------------
-    // AC3 (Story 3-3): --orchestration-run-id parsing
+    // --orchestration-run-id parsing
     // ---------------------------------------------------------------------------
 
     @Test
@@ -172,13 +172,7 @@ class DqsJobArgParserTest {
     }
 
     // ---------------------------------------------------------------------------
-    // AC1 (Story 3-4): --rerun-number parsing
-    //
-    // TDD RED PHASE: All four tests below WILL FAIL until:
-    //   1. DqsJobArgs record gains int rerunNumber field (default 0)
-    //   2. parseArgs() switch block gains a "--rerun-number" case
-    //      that parses the value as an int
-    //   3. DqsJob.main() passes jobArgs.rerunNumber() to writer.write()
+    // --rerun-number parsing
     // ---------------------------------------------------------------------------
 
     /**

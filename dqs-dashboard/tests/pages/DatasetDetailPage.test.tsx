@@ -1,5 +1,5 @@
 /**
- * ATDD Component Tests — Story 4.12: Dataset Detail View (Level 3)
+ * ATDD Component Tests — Dataset Detail View (Level 3)
  *
  * RED PHASE: DatasetDetailPage is currently a 10-line placeholder.
  * useDatasetMetrics and useDatasetTrend do not yet exist in queries.ts.
@@ -1194,13 +1194,13 @@ describe('[P0] DatasetDetailPage — hook integration', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC7: Partial failure isolation — trendError shows "Failed to load
+// Partial failure isolation — trendError shows "Failed to load
 // trend data" while rest of right panel renders normally.
 // RED PHASE: DatasetDetailPage does not yet handle trendError or metricsError
 // independently — currently detailError controls the entire right panel.
 // ---------------------------------------------------------------------------
 
-describe('[P0] DatasetDetailPage — partial failure: trendError (AC7, Story 4.14)', () => {
+describe('[P0] DatasetDetailPage — partial failure: trendError', () => {
   it('[P0] renders "Failed to load trend data" when useDatasetTrend isError is true', () => {
     // THIS TEST WILL FAIL — DatasetDetailPage does not yet isolate trendError
     // Implementation:
@@ -1345,12 +1345,12 @@ describe('[P0] DatasetDetailPage — partial failure: trendError (AC7, Story 4.1
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC7: Partial failure isolation — metricsError shows "Failed to
+// Partial failure isolation — metricsError shows "Failed to
 // load check results" while rest of right panel renders normally.
 // RED PHASE: DatasetDetailPage does not yet handle metricsError independently.
 // ---------------------------------------------------------------------------
 
-describe('[P0] DatasetDetailPage — partial failure: metricsError (AC7, Story 4.14)', () => {
+describe('[P0] DatasetDetailPage — partial failure: metricsError', () => {
   it('[P0] renders "Failed to load check results" when useDatasetMetrics isError is true', () => {
     // THIS TEST WILL FAIL — DatasetDetailPage does not yet isolate metricsError
     // Implementation:
@@ -1529,11 +1529,11 @@ describe('[P0] DatasetDetailPage — partial failure: metricsError (AC7, Story 4
 })
 
 // ---------------------------------------------------------------------------
-// Story 4.14 — AC2: isFetching stale-while-revalidate opacity on DatasetDetailPage
+// isFetching stale-while-revalidate opacity on DatasetDetailPage
 // RED PHASE: DatasetDetailPage does not yet apply isFetching opacity to TrendSparkline.
 // ---------------------------------------------------------------------------
 
-describe('[P1] DatasetDetailPage — isFetching opacity on trend sparkline (AC2, Story 4.14)', () => {
+describe('[P1] DatasetDetailPage — isFetching opacity on trend sparkline', () => {
   it('[P1] TrendSparkline wrapper has opacity 0.5 when useDatasetTrend isFetching is true', () => {
     // THIS TEST WILL FAIL — DatasetDetailPage does not yet use isFetching from useDatasetTrend
     // Implementation:

@@ -1,4 +1,4 @@
-"""Acceptance tests — Story 4.5: ReferenceDataService unit + integration tests.
+"""Acceptance tests for ReferenceDataService — unit + integration tests.
 
 TDD RED PHASE: All tests are marked @pytest.mark.skip because the implementation
 does not exist yet. Tests assert EXPECTED behavior per acceptance criteria.
@@ -650,7 +650,7 @@ class TestDatasetDetailWithResolvedFields:
     def test_dataset_detail_has_lob_name_field(self, client: "TestClient") -> None:  # noqa: F821
         """AC2 [P0]: GET /api/datasets/{dataset_id} response must include 'lob_name' key.
 
-        After story 4.5 implementation, DatasetDetail adds lob_name (str).
+        After implementation, DatasetDetail adds lob_name (str).
         The field must always be present and must be a string (never None or absent).
         """
         response = client.get("/api/datasets/9")

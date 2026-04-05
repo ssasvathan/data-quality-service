@@ -1,22 +1,17 @@
-"""Acceptance tests for orchestrator runner — Story 3-2 + Story 3-3 + Story 3-4.
+"""Acceptance tests for orchestrator runner.
 
-AC Coverage (Story 3-2):
+AC Coverage (runner):
   AC1 — spark-submit invoked once per parent path with correct args
   AC2 — failure isolation: one failed path does not halt others; failure is captured
   AC3 — exit code 0 → path recorded as successful
 
-AC Coverage (Story 3-3):
-  AC3 (3-3) — run_spark_job appends --orchestration-run-id to spark-submit command when provided
-  AC3 (3-3) — run_all_paths threads orchestration_run_ids dict through to each run_spark_job call
+AC Coverage (orchestration tracking):
+  AC3 — run_spark_job appends --orchestration-run-id to spark-submit command when provided
+  AC3 — run_all_paths threads orchestration_run_ids dict through to each run_spark_job call
 
-AC Coverage (Story 3-4 — TDD RED PHASE):
-  AC1 (3-4) — run_spark_job appends --rerun-number to spark-submit command when provided
-  AC1 (3-4) — run_all_paths threads rerun_numbers dict through to each run_spark_job call
-
-TDD RED PHASE TESTS (Story 3-4):
-  The tests marked with "# TDD RED (3-4)" will FAIL until:
-  - run_spark_job() gains an optional rerun_number: int | None = None parameter
-  - run_all_paths() gains an optional rerun_numbers: dict[str, int] | None = None parameter
+AC Coverage (rerun management):
+  AC1 — run_spark_job appends --rerun-number to spark-submit command when provided
+  AC1 — run_all_paths threads rerun_numbers dict through to each run_spark_job call
 """
 
 from datetime import date
@@ -218,16 +213,12 @@ def test_run_all_paths_passes_datasets_to_each_run_spark_job_call() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC3 (Story 3-3): orchestration_run_id passthrough — TDD RED PHASE
+# orchestration_run_id passthrough
 # ---------------------------------------------------------------------------
 
 
 def test_run_spark_job_appends_orchestration_run_id_to_command() -> None:
-    """AC3 (3-3): run_spark_job appends --orchestration-run-id <id> to spark-submit when provided.
-
-    TDD RED: Will fail until run_spark_job() gains orchestration_run_id parameter
-    and appends --orchestration-run-id to the command list.
-    """
+    """run_spark_job appends --orchestration-run-id to spark-submit when provided."""
     with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
         run_spark_job(
             "/data/finance/loans",
@@ -243,11 +234,7 @@ def test_run_spark_job_appends_orchestration_run_id_to_command() -> None:
 
 
 def test_run_spark_job_omits_orchestration_run_id_when_none() -> None:
-    """AC3 (3-3): run_spark_job does NOT append --orchestration-run-id when orchestration_run_id is None.
-
-    TDD RED: Will fail until run_spark_job() gains orchestration_run_id parameter.
-    (Tests that the existing 7 tests still pass — None is the default.)
-    """
+    """run_spark_job does NOT append --orchestration-run-id when orchestration_run_id is None."""
     with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
         run_spark_job(
             "/data/finance/loans",
@@ -261,11 +248,7 @@ def test_run_spark_job_omits_orchestration_run_id_when_none() -> None:
 
 
 def test_run_all_paths_threads_orchestration_run_ids_to_each_path() -> None:
-    """AC3 (3-3): run_all_paths looks up orchestration_run_id per path and passes it to run_spark_job.
-
-    TDD RED: Will fail until run_all_paths() gains orchestration_run_ids dict parameter
-    and passes the correct run_id to each run_spark_job call.
-    """
+    """run_all_paths looks up orchestration_run_id per path and passes it to run_spark_job."""
     paths = ["/data/finance/loans", "/data/finance/deposits"]
     partition_date = date(2026, 3, 25)
     orchestration_run_ids = {
@@ -299,11 +282,7 @@ def test_run_all_paths_threads_orchestration_run_ids_to_each_path() -> None:
 
 
 def test_run_all_paths_passes_none_run_id_for_path_not_in_dict() -> None:
-    """AC3 (3-3): run_all_paths passes orchestration_run_id=None for paths not in the dict.
-
-    TDD RED: Will fail until run_all_paths() handles missing keys via dict.get().
-    Ensures paths without a tracked run_id still get spark-submitted with None.
-    """
+    """run_all_paths passes orchestration_run_id=None for paths not in the dict."""
     paths = ["/data/finance/loans", "/data/finance/deposits"]
     partition_date = date(2026, 3, 25)
     # Only one path in the dict — the other should get None
@@ -327,16 +306,12 @@ def test_run_all_paths_passes_none_run_id_for_path_not_in_dict() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC1 (Story 3-4): rerun_number passthrough — TDD RED PHASE
+# rerun_number passthrough
 # ---------------------------------------------------------------------------
 
 
 def test_run_spark_job_appends_rerun_number_to_command() -> None:
-    """AC1 (3-4): run_spark_job appends --rerun-number <n> to spark-submit when rerun_number provided.
-
-    TDD RED (3-4): Will fail until run_spark_job() gains optional rerun_number parameter
-    and appends ['--rerun-number', str(rerun_number)] to the command list.
-    """
+    """run_spark_job appends --rerun-number to spark-submit when rerun_number provided."""
     with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
         run_spark_job(
             "/data/finance/loans",
@@ -356,11 +331,7 @@ def test_run_spark_job_appends_rerun_number_to_command() -> None:
 
 
 def test_run_spark_job_omits_rerun_number_when_none() -> None:
-    """AC1 (3-4): run_spark_job does NOT append --rerun-number when rerun_number is None.
-
-    TDD RED (3-4): Will fail until run_spark_job() gains rerun_number parameter.
-    When rerun_number=None (default), --rerun-number must not appear in command.
-    """
+    """run_spark_job does NOT append --rerun-number when rerun_number is None."""
     with patch("subprocess.run", return_value=make_completed_process(0)) as mock_run:
         run_spark_job(
             "/data/finance/loans",
@@ -376,12 +347,7 @@ def test_run_spark_job_omits_rerun_number_when_none() -> None:
 
 
 def test_run_all_paths_threads_rerun_numbers_to_spark_job() -> None:
-    """AC1 (3-4): run_all_paths computes rerun_number from rerun_numbers dict and passes to run_spark_job.
-
-    TDD RED (3-4): Will fail until run_all_paths() gains optional rerun_numbers dict parameter
-    and passes the correct rerun_number value to run_spark_job.
-    Per story: use max(rerun_numbers.values()) as the single rerun_number for spark-submit.
-    """
+    """run_all_paths computes rerun_number from rerun_numbers dict and passes to run_spark_job."""
     paths = ["/data/finance/loans"]
     partition_date = date(2026, 3, 25)
     rerun_numbers = {"ue90-omni-transactions": 2}
@@ -409,11 +375,7 @@ def test_run_all_paths_threads_rerun_numbers_to_spark_job() -> None:
 
 
 def test_run_all_paths_passes_none_rerun_number_when_rerun_numbers_is_none() -> None:
-    """AC1 (3-4): run_all_paths passes rerun_number=None to run_spark_job when rerun_numbers is None.
-
-    TDD RED (3-4): Will fail until run_all_paths() handles rerun_numbers=None gracefully.
-    Ensures normal (non-rerun) runs still work without rerun_number in spark-submit.
-    """
+    """run_all_paths passes rerun_number=None to run_spark_job when rerun_numbers is None."""
     paths = ["/data/finance/loans"]
     partition_date = date(2026, 3, 25)
 

@@ -1,11 +1,6 @@
-"""Acceptance tests for email composer and sender — Story 3-5.
+"""Acceptance tests for email composer and sender.
 
-TDD RED PHASE (Story 3-5): All tests in this file WILL FAIL until:
-  - RunSummary dataclass is added to models.py (Task 6)
-  - compose_summary_email() is implemented in email.py (Task 1)
-  - send_summary_email() is added to email.py (Task 3)
-
-AC Coverage (Story 3-5):
+AC Coverage:
   AC1 — compose_summary_email() produces correct email body and subject from RunSummary
   AC2 — send_summary_email() delivers email to configured SRE distribution list via SMTP
   AC3 — send_summary_email() is non-fatal on SMTPException and OSError

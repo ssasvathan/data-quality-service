@@ -1,5 +1,5 @@
 /**
- * TrendSparkline — Story 4.6
+ * TrendSparkline
  *
  * Renders a Recharts sparkline for DQS score trends.
  * Uses LineChart only — no BarChart or AreaChart.

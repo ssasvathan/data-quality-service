@@ -1,5 +1,5 @@
 /**
- * ATDD Theme Unit Tests — Story 4.1: MUI Theme & Design System Foundation
+ * ATDD Theme Unit Tests — MUI Theme & Design System Foundation
  *
  * TDD RED PHASE: These tests define EXPECTED behavior.
  * They will FAIL until theme.ts is implemented correctly.

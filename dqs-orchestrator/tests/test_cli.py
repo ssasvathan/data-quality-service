@@ -1,26 +1,22 @@
-"""Acceptance tests for orchestrator CLI — Story 3-1 + Story 3-3 + Story 3-4.
+"""Acceptance tests for orchestrator CLI.
 
-AC Coverage (Story 3-1):
+AC Coverage (CLI):
   AC1 — load_parent_paths reads config and identifies parent paths
   AC2 — parse_args parses --date, --datasets, --rerun arguments
   AC3 — missing/malformed config exits with a clear error message
 
-AC Coverage (Story 3-3):
-  AC1 (3-3) — main() calls create_orchestration_run before run_all_paths for each parent path
-  AC2 (3-3) — main() calls finalize_orchestration_run after run_all_paths for each JobResult
-  AC2 (3-3) — finalize uses 'completed_with_errors' when JobResult has failures
-  AC3 (3-3) — main() passes orchestration_run_ids dict to run_all_paths
-  Safety    — DB errors in create_orchestration_run do NOT prevent spark-submit
-  Safety    — DB errors in finalize_orchestration_run do NOT cause sys.exit(1)
+AC Coverage (orchestration tracking):
+  AC1 — main() calls create_orchestration_run before run_all_paths for each parent path
+  AC2 — main() calls finalize_orchestration_run after run_all_paths for each JobResult
+  AC2 — finalize uses 'completed_with_errors' when JobResult has failures
+  AC3 — main() passes orchestration_run_ids dict to run_all_paths
+  Safety — DB errors in create_orchestration_run do NOT prevent spark-submit
+  Safety — DB errors in finalize_orchestration_run do NOT cause sys.exit(1)
 
-AC Coverage (Story 3-4 — TDD RED PHASE):
-  AC1 (3-4) — main() calls expire_previous_run for each dataset when --rerun flag is set
-  AC2 (3-4) — main() does NOT call expire_previous_run on normal (non-rerun) runs
-  Safety    — DB errors in expire_previous_run are non-fatal (spark-submit proceeds)
-
-TDD RED PHASE TESTS (Story 3-4):
-  Tests marked "# TDD RED (3-4)" will FAIL until cli.py imports expire_previous_run and wires it.
-  Mock target: 'orchestrator.cli.expire_previous_run' (imported at module level in cli.py).
+AC Coverage (rerun management):
+  AC1 — main() calls expire_previous_run for each dataset when --rerun flag is set
+  AC2 — main() does NOT call expire_previous_run on normal (non-rerun) runs
+  Safety — DB errors in expire_previous_run are non-fatal (spark-submit proceeds)
 """
 
 from unittest.mock import MagicMock, patch
@@ -300,7 +296,7 @@ def test_load_parent_paths_exits_on_entry_missing_path_key(tmp_path: pytest.Temp
 
 
 # ---------------------------------------------------------------------------
-# AC1 (Story 3-3): create_orchestration_run called before run_all_paths — TDD RED
+# create_orchestration_run called before run_all_paths
 # ---------------------------------------------------------------------------
 
 
@@ -321,11 +317,7 @@ def _write_minimal_config(tmp_path, parent_paths_file: str) -> str:
 def test_main_calls_create_orchestration_run_before_run_all_paths(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC1 (3-3): main() calls create_orchestration_run once per parent path before spark-submit.
-
-    TDD RED: Will fail until cli.py imports create_orchestration_run and calls it.
-    Mock target: 'orchestrator.cli.create_orchestration_run' (imported at module level in cli.py).
-    """
+    """main() calls create_orchestration_run once per parent path before spark-submit."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -356,10 +348,7 @@ def test_main_calls_create_orchestration_run_before_run_all_paths(
 def test_main_passes_orchestration_run_ids_to_run_all_paths(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC3 (3-3): main() passes orchestration_run_ids dict to run_all_paths after creating records.
-
-    TDD RED: Will fail until cli.py wires the orchestration_run_ids mapping into run_all_paths().
-    """
+    """main() passes orchestration_run_ids dict to run_all_paths after creating records."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -391,17 +380,14 @@ def test_main_passes_orchestration_run_ids_to_run_all_paths(
 
 
 # ---------------------------------------------------------------------------
-# AC2 (Story 3-3): finalize_orchestration_run called after run_all_paths — TDD RED
+# finalize_orchestration_run called after run_all_paths
 # ---------------------------------------------------------------------------
 
 
 def test_main_calls_finalize_orchestration_run_after_run_all_paths(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC2 (3-3): main() calls finalize_orchestration_run once per JobResult after spark-submit.
-
-    TDD RED: Will fail until cli.py imports finalize_orchestration_run and calls it.
-    """
+    """main() calls finalize_orchestration_run once per JobResult after spark-submit."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -429,10 +415,7 @@ def test_main_calls_finalize_orchestration_run_after_run_all_paths(
 def test_main_finalizes_with_completed_with_errors_on_failure(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC2 (3-3): main() calls finalize with failed_datasets > 0 when JobResult has failures.
-
-    TDD RED: Will fail until cli.py passes failed_count from result.failed_datasets to finalize.
-    """
+    """main() calls finalize with failed_datasets > 0 when JobResult has failures."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -473,18 +456,14 @@ def test_main_finalizes_with_completed_with_errors_on_failure(
 
 
 # ---------------------------------------------------------------------------
-# Safety (Story 3-3): DB errors non-fatal — TDD RED
+# Safety: DB errors non-fatal
 # ---------------------------------------------------------------------------
 
 
 def test_main_continues_spark_submit_when_create_orchestration_run_raises(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """Safety (3-3): DB failure in create_orchestration_run must NOT prevent spark-submit.
-
-    TDD RED: Will fail until cli.py wraps create_orchestration_run in try/except and continues.
-    Per story: DB errors are non-fatal for orchestration — spark-submit must proceed.
-    """
+    """DB failure in create_orchestration_run must NOT prevent spark-submit."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -511,11 +490,7 @@ def test_main_continues_spark_submit_when_create_orchestration_run_raises(
 def test_main_does_not_exit_1_when_finalize_orchestration_run_raises(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """Safety (3-3): DB failure in finalize_orchestration_run must NOT cause sys.exit(1) beyond spark results.
-
-    TDD RED: Will fail until cli.py wraps finalize_orchestration_run in try/except.
-    Per story: exit code is determined by spark results, not DB finalize errors.
-    """
+    """DB failure in finalize_orchestration_run must NOT cause sys.exit(1) beyond spark results."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -535,21 +510,14 @@ def test_main_does_not_exit_1_when_finalize_orchestration_run_raises(
 
 
 # ---------------------------------------------------------------------------
-# Story 3-4 ATDD tests — TDD RED PHASE
-# All tests below WILL FAIL until cli.py imports expire_previous_run and wires
-# the rerun-management block into main().
+# Rerun management tests
 # ---------------------------------------------------------------------------
 
 
 def test_main_calls_expire_previous_run_when_rerun_flag_set(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC1 (3-4): main() calls expire_previous_run for each dataset in args.datasets when --rerun is set.
-
-    TDD RED (3-4): Will fail until cli.py imports expire_previous_run and calls it
-    for each dataset in args.datasets when args.rerun is True.
-    Mock target: 'orchestrator.cli.expire_previous_run' (module-level import in cli.py).
-    """
+    """main() calls expire_previous_run for each dataset in args.datasets when --rerun is set."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -587,11 +555,7 @@ def test_main_calls_expire_previous_run_when_rerun_flag_set(
 def test_main_does_not_call_expire_previous_run_when_rerun_not_set(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC2 (3-4): main() does NOT call expire_previous_run on normal (non-rerun) runs.
-
-    TDD RED (3-4): Will fail until cli.py guards expire_previous_run behind `if args.rerun`.
-    Per story: expire_previous_run is ONLY called when --rerun flag is set.
-    """
+    """main() does NOT call expire_previous_run on normal (non-rerun) runs."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -623,11 +587,7 @@ def test_main_does_not_call_expire_previous_run_when_rerun_not_set(
 def test_main_expire_error_is_non_fatal_spark_submit_still_proceeds(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """Safety (3-4): expire_previous_run raising does NOT prevent spark-submit from proceeding.
-
-    TDD RED (3-4): Will fail until cli.py wraps expire_previous_run in try/except Exception.
-    Per story: DB errors in expire_previous_run are non-fatal — spark-submit must proceed.
-    """
+    """expire_previous_run raising does NOT prevent spark-submit from proceeding."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -662,11 +622,7 @@ def test_main_expire_error_is_non_fatal_spark_submit_still_proceeds(
 def test_main_passes_rerun_numbers_to_run_all_paths(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC1 (3-4): main() passes rerun_numbers kwarg to run_all_paths when --rerun is set.
-
-    TDD RED (3-4): Will fail until cli.py computes rerun_numbers and passes them
-    to run_all_paths() so each spark-submit gets the correct --rerun-number.
-    """
+    """main() passes rerun_numbers kwarg to run_all_paths when --rerun is set."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -705,14 +661,11 @@ def test_main_passes_rerun_numbers_to_run_all_paths(
 
 
 # ---------------------------------------------------------------------------
-# Story 3-5 ATDD tests — TDD RED PHASE
-# All tests below WILL FAIL until cli.py imports compose_summary_email,
-# send_summary_email, query_run_summary, RunSummary and wires the email block
-# after the finalization loop.
+# Email notification tests
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# AC1 + AC2: main() calls send_summary_email after finalize — TDD RED (3-5)
+# main() calls send_summary_email after finalize
 # ---------------------------------------------------------------------------
 
 
@@ -740,14 +693,7 @@ def _write_config_with_email(tmp_path, parent_paths_file: str) -> str:
 def test_main_calls_send_summary_email_after_finalize(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC1+AC2 (3-5): main() calls send_summary_email once per run_id after finalize loop.
-
-    TDD RED (3-5): Will fail until cli.py imports and wires the email block after finalization.
-    Mock targets (all must be imported at module level in cli.py):
-      - 'orchestrator.cli.query_run_summary'
-      - 'orchestrator.cli.compose_summary_email'
-      - 'orchestrator.cli.send_summary_email'
-    """
+    """main() calls send_summary_email once per run_id after finalize loop."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -792,11 +738,7 @@ def test_main_calls_send_summary_email_after_finalize(
 def test_main_email_error_does_not_affect_exit_code(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC3 (3-5): Exception in send_summary_email does NOT change exit code — email errors are non-fatal.
-
-    TDD RED (3-5): Will fail until cli.py wraps the email block in try/except Exception.
-    Per story dev notes: 'Any exception in the email block must not change sys.exit(1) logic'.
-    """
+    """Exception in send_summary_email does NOT change exit code — email errors are non-fatal."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"
@@ -835,12 +777,7 @@ def test_main_email_error_does_not_affect_exit_code(
 def test_main_skips_email_when_no_smtp_config(
     tmp_path: pytest.TempPathFactory,
 ) -> None:
-    """AC3 (3-5): main() skips email silently when 'email' key missing from orchestrator config.
-
-    TDD RED (3-5): Will fail until cli.py guards the email block with
-    'if email_config.get("smtp_host") and email_config.get("to_addresses")'.
-    Per story dev notes: email is skipped (not an error) when smtp_host missing/empty.
-    """
+    """main() skips email silently when 'email' key missing from orchestrator config."""
     parent_paths_file = tmp_path / "parent_paths.yaml"
     parent_paths_file.write_text(
         "parent_paths:\n"

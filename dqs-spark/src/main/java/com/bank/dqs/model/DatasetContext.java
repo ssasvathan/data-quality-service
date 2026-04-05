@@ -8,7 +8,7 @@ import java.time.LocalDate;
 /**
  * Immutable context for a single dataset being quality-checked.
  *
- * <p>Produced by {@code ConsumerZoneScanner} (story 2.2) and passed to every
+ * <p>Produced by {@code ConsumerZoneScanner} and passed to every
  * {@code DqCheck.execute()} call. Also passed to {@code CheckFactory.getEnabledChecks()}
  * so the factory can match {@code dataset_name} against {@code check_config.dataset_pattern}.
  *

@@ -1,5 +1,5 @@
 /**
- * Component Tests — Story 4.6: TrendSparkline
+ * Component Tests — TrendSparkline
  *
  * @testing-framework Vitest + React Testing Library + MUI ThemeProvider
  */

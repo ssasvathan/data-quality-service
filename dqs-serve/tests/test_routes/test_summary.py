@@ -1,4 +1,4 @@
-"""Acceptance tests — Story 4.2: GET /api/summary endpoint.
+"""Acceptance tests for GET /api/summary endpoint.
 
 TDD RED PHASE: All tests are marked @pytest.mark.skip because the endpoint
 does not exist yet. Tests assert EXPECTED behavior per acceptance criteria.

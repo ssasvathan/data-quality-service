@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Correlation check (Tier 3 — Epic 7, Story 7.2).
+ * Correlation check (Tier 3).
  *
  * <p>Detects cross-dataset co-degradation within a source system. For the dataset's
  * {@code src_sys_nm}, it queries {@code v_dq_run_active} to count how many datasets

@@ -1,4 +1,4 @@
-"""Acceptance tests for Story 1-6: Active-Record Views & Indexing.
+"""Acceptance tests for active-record views and indexing.
 
 Test categories:
   - View existence tests (AC1): all 6 v_*_active views exist — parametrized

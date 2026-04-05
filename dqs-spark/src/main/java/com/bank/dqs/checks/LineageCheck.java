@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Lineage check (Tier 3 — Epic 7, Story 7.3).
+ * Lineage check (Tier 3).
  *
  * <p>Detects upstream health signals by querying {@code v_dq_run_active} for other source systems
  * ({@code src_sys_nm} groups) that ran on the same {@code partition_date}. If any upstream

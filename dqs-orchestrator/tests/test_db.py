@@ -1,19 +1,10 @@
-"""Acceptance tests for db helpers — Story 3-3 + Story 3-4.
+"""Acceptance tests for db helpers.
 
-TDD RED PHASE (Story 3-3): Tests that were failing until Story 3-3 implemented:
-  - create_orchestration_run() — now exists
-  - finalize_orchestration_run() — now exists
-  - EXPIRY_SENTINEL constant — now exists
-
-AC Coverage (Story 3-3):
+AC Coverage (orchestration tracking):
   AC1 — create_orchestration_run inserts row with run_status='running' and returns auto-generated id
   AC2 — finalize_orchestration_run updates row with end_time, counts, and correct run_status
 
-TDD RED PHASE (Story 3-4): All tests in the Story 3-4 section WILL FAIL until:
-  - expire_previous_run() does not exist in db.py yet
-  - get_next_rerun_number() does not exist in db.py yet
-
-AC Coverage (Story 3-4):
+AC Coverage (rerun management):
   AC1 — get_next_rerun_number returns MAX(rerun_number)+1 across all history
   AC2 — expire_previous_run sets expiry_date on dq_run AND cascades to both metric tables in one transaction
   AC3 — (Audit trail) full history preserved in raw tables; only latest rerun visible via active views
@@ -205,9 +196,7 @@ def test_get_connection_uses_database_url_env(monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Story 3-4 ATDD tests — TDD RED PHASE
-# All tests below WILL FAIL until expire_previous_run() and
-# get_next_rerun_number() are added to db.py.
+# Rerun management tests
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -303,10 +292,9 @@ def test_expire_previous_run_cascades_to_metric_detail() -> None:
 
 
 def test_expire_previous_run_commits_all_three_updates_in_one_transaction() -> None:
-    """AC2: expire_previous_run() calls conn.commit() once after all three UPDATEs.
+    """expire_previous_run() calls conn.commit() once after all three UPDATEs.
 
-    TDD RED: Will fail until expire_previous_run commits atomically.
-    Per story: all three UPDATEs must execute within one transaction.
+    All three UPDATEs must execute within one transaction.
     """
     from datetime import date  # noqa: PLC0415
 
@@ -446,8 +434,7 @@ def test_get_next_rerun_number_queries_all_history_including_expired() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Story 3-5 ATDD tests — TDD RED PHASE
-# All tests below WILL FAIL until query_run_summary() is added to db.py.
+# Run summary query tests
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------

@@ -510,11 +510,7 @@ class BatchWriterTest {
     }
 
     // ---------------------------------------------------------------------------
-    // AC1 (Story 3-4): rerunNumber stored in dq_run
-    //
-    // TDD RED PHASE: Tests below WILL FAIL until:
-    //   1. BatchWriter.write() signature gains int rerunNumber as 4th parameter
-    //   2. insertDqRun() replaces ps.setInt(6, 0) with ps.setInt(6, rerunNumber)
+    // rerunNumber stored in dq_run
     //   3. All existing call sites updated to pass 0 as 4th arg (done above)
     // ---------------------------------------------------------------------------
 

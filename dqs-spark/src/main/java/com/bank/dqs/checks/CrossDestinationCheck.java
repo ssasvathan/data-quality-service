@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Cross-Destination Consistency check (Tier 3 — Epic 7, Story 7.3).
+ * Cross-Destination Consistency check (Tier 3).
  *
  * <p>Detects datasets replicated to multiple destinations (same {@code dataset_name} appearing
  * across multiple rows on the same {@code partition_date} in {@code v_dq_run_active}).

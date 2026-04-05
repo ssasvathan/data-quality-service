@@ -103,7 +103,7 @@ export function getDqsColorLight(score: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// MUI 7 custom theme — DQS Design System Foundation (Story 4.1)
+// MUI 7 custom theme — DQS Design System Foundation
 // ---------------------------------------------------------------------------
 //
 // Spacing reference (8px base — default MUI spacing, not overridden):

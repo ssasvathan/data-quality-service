@@ -1,6 +1,6 @@
 /**
  * SummaryPage — landing page showing LOB-level DQ score summary.
- * Story 4.9: Summary Card Grid View (Level 1)
+ * Summary Card Grid View (Level 1)
  *
  * Renders a stats bar with aggregate health counts and a 3-column grid
  * of DatasetCard components, one per LOB. Uses skeleton loading (no spinners),
