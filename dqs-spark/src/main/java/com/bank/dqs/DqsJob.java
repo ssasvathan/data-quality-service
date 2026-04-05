@@ -19,6 +19,7 @@ import com.bank.dqs.checks.SourceSystemHealthCheck;
 import com.bank.dqs.checks.VolumeCheck;
 import com.bank.dqs.checks.TimestampSanityCheck;
 import com.bank.dqs.checks.ZeroRowCheck;
+import com.bank.dqs.config.ConfigLoader;
 import com.bank.dqs.model.DatasetContext;
 import com.bank.dqs.model.DqMetric;
 import com.bank.dqs.reader.DatasetReader;
@@ -33,8 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,9 +80,6 @@ public class DqsJob {
 
     /** Formatter for the {@code --date} CLI argument (yyyyMMdd). */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final String DB_URL_DEFAULT = "jdbc:postgresql://localhost:5432/postgres";
-    private static final String DB_USER_DEFAULT = "postgres";
-    private static final String DB_PASSWORD_DEFAULT = "localdev";
 
     /**
      * Parse the CLI argument array into a {@link DqsJobArgs} record.
@@ -169,44 +165,6 @@ public class DqsJob {
         return new DqsJobArgs(parentPath, partitionDate, orchestrationRunId, rerunNumber);
     }
 
-    /**
-     * Load DB config properties from classpath first, then from known filesystem paths.
-     * This supports both packaged execution and local development layouts.
-     */
-    static Properties loadApplicationProperties(List<Path> configCandidates) throws IOException {
-        Properties props = new Properties();
-
-        // 1) Packaged/classpath mode
-        try (InputStream is = DqsJob.class.getResourceAsStream("/application.properties")) {
-            if (is != null) {
-                props.load(is);
-                LOG.debug("Loaded DB properties from classpath resource /application.properties");
-                return props;
-            }
-        }
-
-        // 2) Local filesystem mode (repo/component execution)
-        for (Path candidate : configCandidates) {
-            if (loadPropertiesFromFileIfPresent(props, candidate)) {
-                return props;
-            }
-        }
-
-        LOG.warn("DB properties file not found. Falling back to default DB connection values.");
-        return props;
-    }
-
-    static boolean loadPropertiesFromFileIfPresent(Properties props, Path candidate) throws IOException {
-        if (candidate == null || !Files.isRegularFile(candidate) || !Files.isReadable(candidate)) {
-            return false;
-        }
-        try (InputStream is = Files.newInputStream(candidate)) {
-            props.load(is);
-            LOG.info("Loaded DB properties from {}", candidate.toAbsolutePath());
-            return true;
-        }
-    }
-
     // ---------------------------------------------------------------------------
     // Entry point
     // ---------------------------------------------------------------------------
@@ -223,13 +181,13 @@ public class DqsJob {
                 .appName("dqs-spark")
                 .getOrCreate();
 
-        Properties props = loadApplicationProperties(List.of(
-                Path.of("config", "application.properties"),
-                Path.of("dqs-spark", "config", "application.properties")
+        Properties props = ConfigLoader.load(List.of(
+                Path.of("config"),
+                Path.of("dqs-spark", "config")
         ));
-        String jdbcUrl = props.getProperty("db.url", DB_URL_DEFAULT);
-        String dbUser  = props.getProperty("db.user", DB_USER_DEFAULT);
-        String dbPass  = props.getProperty("db.password", DB_PASSWORD_DEFAULT);
+        String jdbcUrl = props.getProperty("db.url");
+        String dbUser  = props.getProperty("db.user");
+        String dbPass  = props.getProperty("db.password");
 
         FileSystem fs = FileSystem.get(spark.sparkContext().hadoopConfiguration());
         DatasetReader reader = new DatasetReader(spark);
